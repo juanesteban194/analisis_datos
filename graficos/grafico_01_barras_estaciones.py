@@ -6,8 +6,14 @@ Tipo: Gráfico de barras vertical
 
 import pandas as pd
 import plotly.graph_objects as go
+import os
 import sys
-sys.path.append('..')
+
+# Agregar el directorio raíz al path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
 from utils import cargar_datos, guardar_grafico
 
 def crear_grafico(df):
@@ -136,7 +142,8 @@ if __name__ == "__main__":
     print("="*80)
     
     # Cargar datos
-    df = cargar_datos('../data/df_oasis_clean.csv')
+    csv_path = os.path.join(parent_dir, 'data', 'df_oasis_clean.csv')
+    df = cargar_datos(csv_path)
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Crear gráfico
@@ -192,6 +199,6 @@ if __name__ == "__main__":
     print("\n" + "="*80)
     print("✅ GRÁFICO 1 COMPLETADO")
     print("="*80)
-    print("\nArchivo guardado: ../outputs/grafico_01_barras_estaciones.png")
+    print("\nArchivo guardado: outputs/grafico_01_barras_estaciones.png")
     print("\n💡 Próximo paso: Implementar grafico_02_distribucion_usuarios.py")
     print("="*80 + "\n")

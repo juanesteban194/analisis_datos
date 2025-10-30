@@ -1,0 +1,269 @@
+# ============================================================================
+# .gitignore para Proyecto Oasis EVSE Analytics
+# ============================================================================
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# ============================================================================
+# ENTORNOS VIRTUALES
+# ============================================================================
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv/
+
+# Pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# ============================================================================
+# OUTPUTS GENERADOS
+# ============================================================================
+# Gráficos generados (PNG, PDF, etc.)
+outputs/*.png
+outputs/*.pdf
+outputs/*.jpg
+outputs/*.jpeg
+outputs/*.svg
+
+# NO ignorar la carpeta outputs en sí
+!outputs/
+!outputs/.gitkeep
+
+# Reportes generados
+outputs/reports/*.pdf
+outputs/reports/*.docx
+outputs/reports/*.xlsx
+
+# Tablas exportadas
+outputs/tables/*.csv
+outputs/tables/*.xlsx
+
+# ============================================================================
+# DATOS
+# ============================================================================
+# Archivos CSV grandes (IMPORTANTE: decide si quieres subir tus datos)
+
+# Opción A: NO subir NINGÚN CSV (recomendado si son datos sensibles o grandes)
+*.csv
+
+# Opción B: NO subir solo los de data/ (comentar la línea de arriba si usas esta)
+# data/*.csv
+# data/**/*.csv
+
+# Archivos de datos temporales
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Bases de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# IDE / EDITORES
+# ============================================================================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================================================
+# SISTEMA OPERATIVO
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# LOGS
+# ============================================================================
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================================================
+# CONFIGURACIÓN LOCAL
+# ============================================================================
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+*.env
+
+# Configuración local
+config.local.py
+config.local.json
+settings.local.py
+
+# ============================================================================
+# ARCHIVOS TEMPORALES
+# ============================================================================
+# Archivos temporales de Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Archivos de caché
+.cache/
+*.cache
+
+# ============================================================================
+# DASH / PLOTLY
+# ============================================================================
+# Archivos temporales de Dash
+.dash/
+
+# ============================================================================
+# GIT
+# ============================================================================
+# Git conflict files
+*.orig
+
+# ============================================================================
+# ARCHIVOS GRANDES
+# ============================================================================
+# Archivos mayores a 100MB (GitHub tiene límite)
+# Si tienes archivos específicos grandes, agrégalos aquí
+
+# ============================================================================
+# OTROS
+# ============================================================================
+# Archivos de respaldo
+*.backup
+*~
+
+# Archivos comprimidos (opcional)
+# *.zip
+# *.tar.gz
+# *.rar
+
+# ============================================================================
+# EXCEPCIONES (archivos que SÍ quieres subir)
+# ============================================================================
+# Si necesitas incluir algo que está en las reglas anteriores, usa !
+# Ejemplo:
+# !data/ejemplo_pequeno.csv
+
+# Mantener carpetas vacías
+!.gitkeep
