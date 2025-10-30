@@ -196,9 +196,4 @@ if __name__ == "__main__":
     print("🌐 Abriendo gráfico en navegador...")
     fig.show()
     
-    print("\n" + "="*80)
-    print("✅ GRÁFICO 1 COMPLETADO")
-    print("="*80)
-    print("\nArchivo guardado: outputs/grafico_01_barras_estaciones.png")
-    print("\n💡 Próximo paso: Implementar grafico_02_distribucion_usuarios.py")
-    print("="*80 + "\n")
+    

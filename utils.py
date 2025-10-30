@@ -159,38 +159,3 @@ ESTILO_GRAFICO = {
     'grid_color': '#e2e8f0'
 }
 
-if __name__ == "__main__":
-    """
-    Código de prueba para verificar que utils.py funciona correctamente
-    """
-    print("\n" + "="*60)
-    print("PRUEBA DE UTILS.PY")
-    print("="*60)
-    
-    # Probar carga de datos
-    try:
-        df = cargar_datos('data/df_oasis_clean.csv')
-        print("\n✓ Función cargar_datos() funciona correctamente")
-        
-        # Mostrar info básica
-        print(f"\nColumnas disponibles: {list(df.columns)}")
-        print(f"Dimensiones: {df.shape}")
-        
-        # Calcular métricas básicas
-        metricas = calcular_metricas_basicas(df)
-        print("\n📊 Métricas básicas:")
-        for key, value in metricas.items():
-            if 'ingresos' in key or 'energia' in key:
-                print(f"   • {key}: {formatear_numero(value)}")
-            else:
-                print(f"   • {key}: {value:,}")
-        
-        print("\n" + "="*60)
-        print("✅ UTILS.PY FUNCIONA CORRECTAMENTE")
-        print("="*60)
-        
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        print("\nAsegúrate de que:")
-        print("   1. Estás en la carpeta raíz del proyecto")
-        print("   2. Existe la carpeta data/ con df_oasis_clean.csv")
