@@ -334,7 +334,7 @@ def analizar(uso_df, df):
     
     # Estadísticas generales
     promedio_trans = uso_df['transacciones'].mean()
-    mediana_trans = uso_df['transacciones'].median()
+    
     
     # Por tipo de estación
     stats_por_tipo = uso_df.groupby('tipo').agg({
@@ -367,7 +367,7 @@ def analizar(uso_df, df):
         'concentracion_top3': concentracion_top3,
         
         'promedio_trans': promedio_trans,
-        'mediana_trans': mediana_trans,
+        
         
         'bajo_rendimiento_count': len(bajo_rendimiento),
         'bajo_rendimiento_pct': len(bajo_rendimiento) / total_estaciones * 100,
@@ -385,7 +385,6 @@ def analizar(uso_df, df):
         
         'insight_eficiencia': f"La estación más eficiente es '{top_eficiencia.iloc[0]['evse_uid']}' con {top_eficiencia.iloc[0]['trans_por_dia']:.1f} transacciones por día.",
         
-        'insight_distribucion': f"La mediana de {int(mediana_trans)} es {'menor' if mediana_trans < promedio_trans else 'mayor'} que el promedio de {promedio_trans:.1f}, indicando distribución {'sesgada' if mediana_trans < promedio_trans else 'equilibrada'}."
     }
     
     return insights
@@ -401,17 +400,17 @@ if __name__ == "__main__":
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Preparar datos de uso
-    print("📊 Analizando uso por estación...")
+    print(" Analizando uso por estación...")
     uso_df = preparar_datos_uso(df)
     print(f"✓ Análisis completado para {len(uso_df)} estaciones\n")
     
     # Crear matriz temporal
-    print("🗓️  Creando matriz temporal...")
+    print("  Creando matriz temporal...")
     matriz_temporal = crear_matriz_temporal(df)
     print("✓ Matriz temporal creada\n")
     
     # Crear gráficos
-    print("📊 Creando visualizaciones...")
+    print(" Creando visualizaciones...")
     fig_main = crear_grafico(uso_df, matriz_temporal)
     fig_comp = crear_grafico_comparativo(uso_df)
     fig_efic = crear_grafico_eficiencia(uso_df)
@@ -419,18 +418,18 @@ if __name__ == "__main__":
     
     # Analizar
     print("="*80)
-    print("📊 ANÁLISIS DE USO POR ESTACIÓN")
+    print(" ANÁLISIS DE USO POR ESTACIÓN")
     print("="*80)
     
     insights = analizar(uso_df, df)
     
-    print(f"\n📈 RESUMEN GENERAL:")
+    print(f"\n RESUMEN GENERAL:")
     print(f"   • Total de estaciones: {insights['total_estaciones']}")
     print(f"   • Total de transacciones: {insights['total_transacciones']:,}")
     print(f"   • Promedio por estación: {insights['promedio_trans']:.1f}")
     print(f"   • Mediana: {insights['mediana_trans']:.0f}")
     
-    print(f"\n🏆 TOP 3 ESTACIONES:")
+    print(f"\n TOP 3 ESTACIONES:")
     print(f"   1. {insights['top_1_nombre']}: {insights['top_1_trans']:,} trans - ${insights['top_1_ingresos']:,} COP")
     print(f"   2. {insights['top_2_nombre']}: {insights['top_2_trans']:,} trans")
     print(f"   3. {insights['top_3_nombre']}: {insights['top_3_trans']:,} trans")
@@ -440,24 +439,24 @@ if __name__ == "__main__":
     print(f"   • Estación más eficiente: {insights['top_eficiencia_nombre']}")
     print(f"   • Transacciones por día: {insights['top_eficiencia_valor']:.2f}")
     
-    print(f"\n⚠️  BAJO RENDIMIENTO:")
+    print(f"\n BAJO RENDIMIENTO:")
     print(f"   • Estaciones con <50 trans: {insights['bajo_rendimiento_count']}")
     print(f"   • Porcentaje: {insights['bajo_rendimiento_pct']:.1f}%")
     
-    print(f"\n📊 ESTADÍSTICAS POR TIPO:")
+    print(f"\n ESTADÍSTICAS POR TIPO:")
     print(f"\n{'Tipo':<15} {'Estaciones':>12} {'Trans Total':>15} {'Trans Promedio':>17} {'Ingresos Total':>18}")
     print("-" * 85)
     for tipo in insights['stats_por_tipo'].index:
         row = insights['stats_por_tipo'].loc[tipo]
         print(f"{tipo:<15} {int(row[('evse_uid', 'count')]):>12} {int(row[('transacciones', 'sum')]):>15,} {row[('transacciones', 'mean')]:>17.1f} ${int(row[('ingresos_totales', 'sum')]):>17,}")
     
-    print(f"\n📋 TABLA COMPLETA (Top 10):")
+    print(f"\nTABLA COMPLETA (Top 10):")
     print(f"\n{'Estación':<30} {'Trans':>8} {'Usuarios':>10} {'Ingresos':>15} {'Trans/día':>10}")
     print("-" * 80)
     for _, row in uso_df.head(10).iterrows():
         print(f"{row['evse_uid']:<30} {int(row['transacciones']):>8} {int(row['usuarios_unicos']):>10} ${int(row['ingresos_totales']):>14,} {row['trans_por_dia']:>10.2f}")
     
-    print(f"\n💡 INSIGHTS PRINCIPALES:")
+    print(f"\n INSIGHTS PRINCIPALES:")
     print(f"\n   1. ESTACIÓN LÍDER:")
     print(f"      {insights['insight_top']}")
     
@@ -481,23 +480,23 @@ if __name__ == "__main__":
     
     # Guardar gráficos
     print("\n" + "="*80)
-    print("💾 Guardando gráficos...")
+    print(" Guardando gráficos...")
     guardar_grafico(fig_main, 'grafico_07_heatmap_uso.png')
     guardar_grafico(fig_comp, 'grafico_07_comparativo.png')
     guardar_grafico(fig_efic, 'grafico_07_eficiencia.png')
     
     # Mostrar en navegador
-    print("🌐 Abriendo gráfico principal en navegador...")
+    print(" Abriendo gráfico principal en navegador...")
     fig_main.show()
     
-    print("\n🌐 Abriendo gráfico comparativo en navegador...")
+    print("\n Abriendo gráfico comparativo en navegador...")
     fig_comp.show()
     
-    print("\n🌐 Abriendo gráfico de eficiencia en navegador...")
+    print("\n Abriendo gráfico de eficiencia en navegador...")
     fig_efic.show()
     
     print("\n" + "="*80)
-    print("✅ GRÁFICO 7 COMPLETADO")
+    print("GRÁFICO 7 COMPLETADO")
     print("="*80)
     print("\nArchivos guardados:")
     print("  • outputs/grafico_07_heatmap_uso.png")
