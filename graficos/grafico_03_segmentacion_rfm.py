@@ -341,38 +341,38 @@ if __name__ == "__main__":
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Calcular RFM
-    print("🔄 Calculando métricas RFM...")
+    print(" Calculando métricas RFM...")
     rfm_df = calcular_rfm(df)
     print(f"✓ RFM calculado para {len(rfm_df):,} usuarios\n")
     
     # Crear gráfico 3D
-    print("📊 Creando gráfico 3D...")
+    print(" Creando gráfico 3D...")
     fig_3d = crear_grafico(rfm_df)
     
     # Crear gráfico 2D
-    print("📊 Creando gráfico 2D...")
+    print(" Creando gráfico 2D...")
     fig_2d = crear_grafico_2d(rfm_df)
     
     # Analizar datos
     print("\n" + "="*80)
-    print("📊 ANÁLISIS E INSIGHTS")
+    print(" ANÁLISIS E INSIGHTS")
     print("="*80)
     
     insights = analizar(rfm_df)
     
-    print(f"\n📈 RESUMEN GENERAL:")
+    print(f"\n RESUMEN GENERAL:")
     print(f"   • Total de usuarios: {insights['total_usuarios']:,}")
     print(f"   • Segmentos identificados: {insights['total_segmentos']}")
     
-    print(f"\n👑 SEGMENTO CHAMPIONS:")
+    print(f"\n SEGMENTO CHAMPIONS:")
     print(f"   • Usuarios: {insights['champions_count']} ({insights['champions_pct']})")
     print(f"   • Valor generado: ${insights['champions_value']:,} COP")
     
-    print(f"\n⚠️  SEGMENTO AT RISK:")
+    print(f"\n  SEGMENTO AT RISK:")
     print(f"   • Usuarios: {insights['at_risk_count']} ({insights['at_risk_pct']})")
     print(f"   • Valor en riesgo: ${insights['at_risk_value']:,} COP")
     
-    print(f"\n📊 DISTRIBUCIÓN POR SEGMENTO:")
+    print(f"\n DISTRIBUCIÓN POR SEGMENTO:")
     print(f"\n{'Segmento':<25} {'Usuarios':>10} {'%':>8} {'Freq Avg':>10} {'$ Avg':>15}")
     print("-" * 80)
     for segment, row in insights['segment_stats'].iterrows():
@@ -382,7 +382,7 @@ if __name__ == "__main__":
     for i, (segment, value) in enumerate(insights['segment_value'].head(5).items(), 1):
         print(f"   {i}. {segment:<25} ${value:>15,.0f} COP")
     
-    print(f"\n💡 INSIGHTS PRINCIPALES:")
+    print(f"\n INSIGHTS PRINCIPALES:")
     print(f"\n   1. CHAMPIONS - MANTENER Y RECOMPENSAR:")
     print(f"      {insights['insight_champions']}")
     
@@ -401,22 +401,15 @@ if __name__ == "__main__":
     
     # Guardar gráficos
     print("\n" + "="*80)
-    print("💾 Guardando gráficos...")
+    print(" Guardando gráficos...")
     guardar_grafico(fig_3d, 'grafico_03_rfm_3d.png')
     guardar_grafico(fig_2d, 'grafico_03_rfm_2d.png')
     
     # Mostrar en navegador
-    print("🌐 Abriendo gráfico 3D en navegador...")
+    print(" Abriendo gráfico 3D en navegador...")
     fig_3d.show()
     
-    print("\n🌐 Abriendo gráfico 2D en navegador...")
+    print("\n Abriendo gráfico 2D en navegador...")
     fig_2d.show()
     
-    print("\n" + "="*80)
-    print("✅ GRÁFICO 3 COMPLETADO")
-    print("="*80)
-    print("\nArchivos guardados:")
-    print("  • outputs/grafico_03_rfm_3d.png")
-    print("  • outputs/grafico_03_rfm_2d.png")
-    print("\n💡 Próximo paso: Implementar grafico_04_clv_segmentos.py")
-    print("="*80 + "\n")
+    

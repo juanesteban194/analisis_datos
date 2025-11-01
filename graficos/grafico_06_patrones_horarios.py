@@ -352,58 +352,58 @@ if __name__ == "__main__":
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Preparar datos temporales
-    print("⏰ Preparando datos temporales...")
+    print(" Preparando datos temporales...")
     df = preparar_datos_temporales(df)
     print("✓ Datos temporales listos\n")
     
     # Crear matriz heatmap
-    print("🔥 Creando matriz de heatmap...")
+    print(" Creando matriz de heatmap...")
     matriz = crear_matriz_heatmap(df)
     print("✓ Matriz creada\n")
     
     # Crear gráficos
-    print("📊 Creando heatmap principal...")
+    print(" Creando heatmap principal...")
     fig_main = crear_grafico(df, matriz)
     
-    print("📊 Creando gráfico horario detallado...")
+    print(" Creando gráfico horario detallado...")
     fig_detail = crear_grafico_horario_detallado(df)
     
     # Analizar
     print("\n" + "="*80)
-    print("📊 ANÁLISIS DE PATRONES HORARIOS")
+    print(" ANÁLISIS DE PATRONES HORARIOS")
     print("="*80)
     
     insights = analizar(df, matriz)
     
-    print(f"\n⏰ PATRONES POR HORA:")
+    print(f"\n PATRONES POR HORA:")
     print(f"   • Hora pico: {insights['hora_pico']}:00")
     print(f"   • Transacciones en hora pico: {insights['trans_hora_pico']} ({insights['pct_hora_pico']:.1f}%)")
     print(f"   • Hora valle: {insights['hora_valle']}:00")
     print(f"   • Transacciones en hora valle: {insights['trans_hora_valle']}")
     
-    print(f"\n📅 PATRONES POR DÍA:")
+    print(f"\n PATRONES POR DÍA:")
     print(f"   • Día más activo: {insights['dia_pico']}")
     print(f"   • Transacciones: {insights['trans_dia_pico']}")
     
-    print(f"\n💼 LABORALES VS FIN DE SEMANA:")
+    print(f"\n LABORALES VS FIN DE SEMANA:")
     print(f"   • Días laborales: {insights['trans_laborales']:,} trans ({insights['pct_laborales']:.1f}%)")
     print(f"   • Promedio/día laboral: {insights['promedio_dia_laboral']:.0f}")
     print(f"   • Fin de semana: {insights['trans_fin_semana']:,} trans ({insights['pct_fin_semana']:.1f}%)")
     print(f"   • Promedio/día fin de semana: {insights['promedio_dia_fin_semana']:.0f}")
     
-    print(f"\n🕐 FRANJAS HORARIAS:")
+    print(f"\n FRANJAS HORARIAS:")
     print(f"   • Mañana (6am-11am):   {insights['trans_manana']:>5,} trans ({insights['pct_manana']:>5.1f}%)")
     print(f"   • Mediodía (12pm-2pm):  {insights['trans_mediodia']:>5,} trans ({insights['pct_mediodia']:>5.1f}%)")
     print(f"   • Tarde (3pm-7pm):      {insights['trans_tarde']:>5,} trans ({insights['pct_tarde']:>5.1f}%)")
     print(f"   • Noche (8pm-11pm):     {insights['trans_noche']:>5,} trans ({insights['pct_noche']:>5.1f}%)")
     print(f"   • Madrugada (12am-5am): {insights['trans_madrugada']:>5,} trans ({insights['pct_madrugada']:>5.1f}%)")
     
-    print(f"\n🔥 PUNTO MÁS CALIENTE:")
+    print(f"\n PUNTO MÁS CALIENTE:")
     print(f"   • Día: {insights['punto_max_dia']}")
     print(f"   • Hora: {insights['punto_max_hora']}:00")
     print(f"   • Transacciones: {insights['punto_max_valor']}")
     
-    print(f"\n💡 INSIGHTS PRINCIPALES:")
+    print(f"\n INSIGHTS PRINCIPALES:")
     print(f"\n   1. HORA PICO:")
     print(f"      {insights['insight_hora_pico']}")
     
@@ -427,15 +427,15 @@ if __name__ == "__main__":
     
     # Guardar gráficos
     print("\n" + "="*80)
-    print("💾 Guardando gráficos...")
+    print(" Guardando gráficos...")
     guardar_grafico(fig_main, 'grafico_06_patrones_horarios.png')
     guardar_grafico(fig_detail, 'grafico_06_horario_detallado.png')
     
     # Mostrar en navegador
-    print("🌐 Abriendo heatmap en navegador...")
+    print(" Abriendo heatmap en navegador...")
     fig_main.show()
     
-    print("\n🌐 Abriendo gráfico detallado en navegador...")
+    print("\n Abriendo gráfico detallado en navegador...")
     fig_detail.show()
     
     
