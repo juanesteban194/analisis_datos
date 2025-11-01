@@ -30,9 +30,9 @@ def preparar_datos_uso(df):
         DataFrame con métricas por estación
     """
     
-    # Agregar por estación
+    # Agregar por estación (usar 'id' en lugar de 'transaction_id')
     uso_por_estacion = df.groupby('evse_uid').agg({
-        'transaction_id': 'count',  # Número de transacciones (usar índice si no existe)
+        'id': 'count',  # Número de transacciones
         'user_id': 'nunique',  # Usuarios únicos
         'amount_transaction': ['sum', 'mean'],  # Ingresos
         'energy_kwh': ['sum', 'mean'],  # Energía
@@ -396,7 +396,7 @@ if __name__ == "__main__":
     print("="*80)
     
     # Cargar datos
-    csv_path = os.path.join(parent_dir, 'data', 'df_oasis_clean.csv')
+    csv_path = 'data/df_oasis_clean.csv'
     df = cargar_datos(csv_path)
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
@@ -496,4 +496,12 @@ if __name__ == "__main__":
     print("\n🌐 Abriendo gráfico de eficiencia en navegador...")
     fig_efic.show()
     
- 
+    print("\n" + "="*80)
+    print("✅ GRÁFICO 7 COMPLETADO")
+    print("="*80)
+    print("\nArchivos guardados:")
+    print("  • outputs/grafico_07_heatmap_uso.png")
+    print("  • outputs/grafico_07_comparativo.png")
+    print("  • outputs/grafico_07_eficiencia.png")
+    print("\n💡 Próximo paso: Implementar grafico_08_top_estaciones.py")
+    print("="*80 + "\n")
