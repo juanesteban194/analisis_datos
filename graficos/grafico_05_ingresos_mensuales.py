@@ -386,45 +386,45 @@ if __name__ == "__main__":
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Preparar datos temporales
-    print("📅 Preparando datos mensuales...")
+    print("Preparando datos mensuales...")
     monthly_data = preparar_datos_temporales(df)
     print(f"✓ Datos agregados para {len(monthly_data)} meses\n")
     
     # Crear gráficos
-    print("📊 Creando gráfico principal...")
+    print(" Creando gráfico principal...")
     fig_main = crear_grafico(monthly_data)
     
-    print("📊 Creando gráfico comparativo...")
+    print(" Creando gráfico comparativo...")
     fig_comp = crear_grafico_comparativo(monthly_data)
     
     # Analizar
     print("\n" + "="*80)
-    print("📊 ANÁLISIS TEMPORAL")
+    print(" ANÁLISIS TEMPORAL")
     print("="*80)
     
     insights = analizar(monthly_data)
     
-    print(f"\n📈 RESUMEN GENERAL:")
+    print(f"\n RESUMEN GENERAL:")
     print(f"   • Período analizado: {insights['total_meses']} meses")
     print(f"   • Ingresos totales: ${insights['total_ingresos']:,} COP")
     print(f"   • Transacciones totales: {insights['total_transacciones']:,}")
     print(f"   • Ingreso promedio/mes: ${insights['ingreso_promedio_mes']:,} COP")
     print(f"   • Usuarios promedio/mes: {insights['usuarios_promedio_mes']}")
     
-    print(f"\n🏆 MEJOR Y PEOR MES:")
+    print(f"\n MEJOR Y PEOR MES:")
     print(f"   • Mejor: {insights['mejor_mes_fecha']} - ${insights['mejor_mes_ingresos']:,} COP")
     print(f"   • Peor: {insights['peor_mes_fecha']} - ${insights['peor_mes_ingresos']:,} COP")
     
-    print(f"\n📊 TENDENCIA:")
+    print(f"\n TENDENCIA:")
     print(f"   • Crecimiento total: {insights['crecimiento_total']:.1f}%")
     print(f"   • Tendencia: {insights['tendencia'].upper()}")
     print(f"   • Volatilidad: {insights['volatilidad']:.1f}%")
     
-    print(f"\n✅ CONSISTENCIA:")
+    print(f"\n CONSISTENCIA:")
     print(f"   • Meses con crecimiento: {insights['meses_crecimiento_positivo']} de {insights['total_meses']-1}")
     print(f"   • Porcentaje positivo: {insights['pct_meses_positivos']:.1f}%")
     
-    print(f"\n📋 TABLA MENSUAL:")
+    print(f"\n TABLA MENSUAL:")
     print(f"\n{'Mes':<12} {'Ingresos':>15} {'Usuarios':>10} {'Trans':>8} {'Crec %':>8}")
     print("-" * 60)
     for _, row in monthly_data.iterrows():
@@ -432,7 +432,7 @@ if __name__ == "__main__":
         crec_str = f"{crec:>7.1f}%" if not pd.isna(crec) else "    -   "
         print(f"{row['year_month']:<12} ${row['ingresos_totales']:>14,.0f} {int(row['usuarios_activos']):>10} {int(row['num_transacciones']):>8} {crec_str}")
     
-    print(f"\n💡 INSIGHTS PRINCIPALES:")
+    print(f"\n INSIGHTS PRINCIPALES:")
     print(f"\n   1. TENDENCIA GENERAL:")
     print(f"      {insights['insight_tendencia']}")
     
@@ -459,15 +459,15 @@ if __name__ == "__main__":
     
     # Guardar gráficos
     print("\n" + "="*80)
-    print("💾 Guardando gráficos...")
+    print(" Guardando gráficos...")
     guardar_grafico(fig_main, 'grafico_05_ingresos_mensuales.png')
     guardar_grafico(fig_comp, 'grafico_05_comparativo.png')
     
     # Mostrar en navegador
-    print("🌐 Abriendo gráfico principal en navegador...")
+    print(" Abriendo gráfico principal en navegador...")
     fig_main.show()
     
-    print("\n🌐 Abriendo gráfico comparativo en navegador...")
+    print("\n Abriendo gráfico comparativo en navegador...")
     fig_comp.show()
     
    

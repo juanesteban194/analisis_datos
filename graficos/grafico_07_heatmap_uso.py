@@ -495,12 +495,4 @@ if __name__ == "__main__":
     print("\n Abriendo gráfico de eficiencia en navegador...")
     fig_efic.show()
     
-    print("\n" + "="*80)
-    print("GRÁFICO 7 COMPLETADO")
-    print("="*80)
-    print("\nArchivos guardados:")
-    print("  • outputs/grafico_07_heatmap_uso.png")
-    print("  • outputs/grafico_07_comparativo.png")
-    print("  • outputs/grafico_07_eficiencia.png")
-    print("\n💡 Próximo paso: Implementar grafico_08_top_estaciones.py")
-    print("="*80 + "\n")
+    

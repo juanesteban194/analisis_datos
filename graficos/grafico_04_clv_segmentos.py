@@ -360,55 +360,55 @@ if __name__ == "__main__":
     print(f"✓ Datos cargados: {len(df):,} registros\n")
     
     # Calcular RFM
-    print("🔄 Calculando segmentación RFM...")
+    print(" Calculando segmentación RFM...")
     rfm_df = calcular_rfm(df)
     print(f"✓ RFM calculado para {len(rfm_df):,} usuarios\n")
     
     # Calcular CLV
-    print("💰 Calculando CLV por segmento...")
+    print(" Calculando CLV por segmento...")
     clv_df = calcular_clv(df, rfm_df)
     print(f"✓ CLV calculado para {len(clv_df)} segmentos\n")
     
     # Crear gráfico
-    print("📊 Creando gráfico...")
+    print(" Creando gráfico...")
     fig = crear_grafico(clv_df)
     
     # Analizar
     print("\n" + "="*80)
-    print("📊 ANÁLISIS DE CLV")
+    print("ANÁLISIS DE CLV")
     print("="*80)
     
     insights = analizar(clv_df)
     
-    print(f"\n💼 RESUMEN GENERAL:")
+    print(f"\nRESUMEN GENERAL:")
     print(f"   • Total de usuarios: {insights['total_users']:,}")
     print(f"   • Ingresos totales: ${insights['total_revenue']:,} COP")
     
-    print(f"\n🏆 SEGMENTO CON MAYOR CLV:")
+    print(f"\nSEGMENTO CON MAYOR CLV:")
     print(f"   • Segmento: {insights['top_clv_segment']}")
     print(f"   • CLV proyectado: ${insights['top_clv_value']:,.0f} COP/año")
     print(f"   • Usuarios: {insights['top_clv_users']}")
     print(f"   • Ingresos totales: ${insights['top_clv_revenue']:,} COP")
     
     if insights['champions_users'] > 0:
-        print(f"\n👑 CHAMPIONS:")
+        print(f"\nCHAMPIONS:")
         print(f"   • CLV: ${insights['champions_clv']:,.0f} COP/año")
         print(f"   • Usuarios: {insights['champions_users']} ({(insights['champions_users']/insights['total_users']*100):.1f}%)")
         print(f"   • Ingresos: ${insights['champions_revenue']:,} COP ({insights['champions_pct_revenue']:.1f}% del total)")
     
     if insights['at_risk_users'] > 0:
-        print(f"\n⚠️  AT RISK:")
+        print(f"\n AT RISK:")
         print(f"   • Usuarios: {insights['at_risk_users']} ({insights['at_risk_pct']:.1f}%)")
         print(f"   • Ingresos en riesgo: ${insights['at_risk_revenue']:,} COP")
         print(f"   • ROI potencial (30% recuperación): ${insights['roi_recuperacion']:,} COP")
     
-    print(f"\n📊 TABLA COMPLETA CLV POR SEGMENTO:")
+    print(f"\nTABLA COMPLETA CLV POR SEGMENTO:")
     print(f"\n{'Segmento':<20} {'Usuarios':>8} {'CLV/año':>15} {'Ingresos Totales':>18} {'Valor/Trans':>15}")
     print("-" * 85)
     for _, row in clv_df.iterrows():
         print(f"{row['segment']:<20} {int(row['num_users']):>8} ${row['clv_projected_1year']:>14,.0f} ${row['total_revenue']:>17,.0f} ${row['avg_transaction_value']:>14,.0f}")
     
-    print(f"\n💡 INSIGHTS PRINCIPALES:")
+    print(f"\n INSIGHTS PRINCIPALES:")
     print(f"\n   1. MAYOR CLV:")
     print(f"      {insights['insight_top_clv']}")
     
@@ -430,16 +430,11 @@ if __name__ == "__main__":
     
     # Guardar gráfico
     print("\n" + "="*80)
-    print("💾 Guardando gráfico...")
+    print(" Guardando gráfico...")
     guardar_grafico(fig, 'grafico_04_clv_segmentos.png')
     
     # Mostrar en navegador
-    print("🌐 Abriendo gráfico en navegador...")
+    print("Abriendo gráfico en navegador...")
     fig.show()
     
-    print("\n" + "="*80)
-    print("✅ GRÁFICO 4 COMPLETADO")
-    print("="*80)
-    print("\nArchivo guardado: outputs/grafico_04_clv_segmentos.png")
-    print("\n💡 Próximo paso: Implementar grafico_05_ingresos_mensuales.py")
-    print("="*80 + "\n")
+   

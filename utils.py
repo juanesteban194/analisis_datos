@@ -158,4 +158,3 @@ ESTILO_GRAFICO = {
     'bg_color': '#ffffff',
     'grid_color': '#e2e8f0'
 }
-
