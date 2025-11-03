@@ -48,6 +48,7 @@ COLOR_MAP_ES = {
 # -----------------------------------------------------------------------------
 # Cargar y normalizar datos
 # -----------------------------------------------------------------------------
+
 def _pick_existing_path(paths):
     for p in paths:
         if os.path.exists(p):

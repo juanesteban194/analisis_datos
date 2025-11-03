@@ -43,6 +43,8 @@ COLOR_MAP_ES = {
 }
 
 # ---------------- Helpers ----------------
+
+
 def _elegir_csv() -> str:
     for p in CSV_CANDIDATOS:
         if os.path.exists(p):
