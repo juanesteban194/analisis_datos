@@ -491,4 +491,3 @@ if __name__ == "__main__":
     fig_main.show()
     print("Abriendo gráfico comparativo...")
     fig_comp.show()
-x
