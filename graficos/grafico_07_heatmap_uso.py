@@ -409,7 +409,7 @@ if __name__ == "__main__":
     # Cargar datos (COP coherente con total ≈ 166M)
     df = cargar_df()
     print(f"✓ Datos cargados: {len(df):,} registros")
-    print(f"🧮 Total ingresos (COP): {df['ingresos_cop'].sum():,.0f}\n")
+    print(f" Total ingresos (COP): {df['ingresos_cop'].sum():,.0f}\n")
 
     # Preparar datos de uso
     print(" Analizando uso por estación...")
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     print(f"   3) {insights['insight_bajo_rendimiento']}")
     print(f"   4) {insights['insight_eficiencia']}")
     print(f"   5) {insights['insight_distribucion']}")
-    print(f"\n🧮 Reconciliación de ingresos (COP): {insights['total_ingresos_cop']:,.0f}")
+    print(f"\n Reconciliación de ingresos (COP): {insights['total_ingresos_cop']:,.0f}")
 
     # Guardar
     print("\n" + "="*80)

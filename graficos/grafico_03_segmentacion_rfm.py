@@ -285,7 +285,7 @@ def imprimir_resumen_consola(rfm_df: pd.DataFrame, df_base: pd.DataFrame) -> Non
     total_usuarios = len(rfm_df)
 
     print("\n" + "=" * 90)
-    print("📊 RESUMEN POR SEGMENTO (monetario en MILES de COP)")
+    print(" RESUMEN POR SEGMENTO (monetario en MILES de COP)")
     print("=" * 90)
     print(f"{'Segmento':<20} {'Usuarios':>8} {'%':>6} {'Rec':>6} {'Freq':>6} {'$ promedio (mil)':>18}")
     print("-" * 90)
@@ -299,7 +299,7 @@ def imprimir_resumen_consola(rfm_df: pd.DataFrame, df_base: pd.DataFrame) -> Non
     # ---- Reconciliación real en COP ----
     total_cop = df_base["ingresos_cop"].sum(skipna=True)
     print("\n" + "=" * 90)
-    print(f"🧮 Total de ingresos en dataset (COP reales): {total_cop:,.0f}")
+    print(f" Total de ingresos en dataset (COP reales): {total_cop:,.0f}")
     print("    (esto es el valor que debe concordar con tus ~166 millones)")
     print("=" * 90)
 
@@ -315,18 +315,18 @@ if __name__ == "__main__":
     df = cargar_df()
     rfm_df = calcular_rfm(df)
 
-    print("🎨 Creando gráficos…")
+    print(" Creando gráficos…")
     fig_3d = crear_grafico_3d(rfm_df)
     fig_2d = crear_grafico_2d(rfm_df)
 
-    print("💾 Guardando gráficos…")
+    print(" Guardando gráficos…")
     guardar_grafico(fig_3d, "grafico_03_rfm_3d.png")
     guardar_grafico(fig_2d, "grafico_03_rfm_2d.png")
 
-    print("🌐 Mostrando…")
+    print(" Mostrando…")
     fig_3d.show()
     fig_2d.show()
 
     imprimir_resumen_consola(rfm_df, df)
 
-    print("\n✅ Gráfico 3 listo y coherente con el total real.\n")
+    print("\n Gráfico 3 listo y coherente con el total real.\n")
