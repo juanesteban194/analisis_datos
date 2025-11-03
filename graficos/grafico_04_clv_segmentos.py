@@ -22,7 +22,7 @@ PARENT_DIR = os.path.dirname(CURRENT_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
-from utils import cargar_datos, guardar_grafico  # tus utilidades
+from utils import cargar_datos, guardar_grafico 
 
 # ---------------- Config ----------------
 CSV_CANDIDATOS = [

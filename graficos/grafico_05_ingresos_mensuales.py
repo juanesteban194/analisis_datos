@@ -54,7 +54,7 @@ def seleccionar_monto(df: pd.DataFrame, debug: bool = True) -> pd.Series:
         return s
 
     if "amount_transaction_cop" in df.columns:
-        # En tu data, esta venía 100x pequeña → *100
+       
         s = _to_num(df["amount_transaction_cop"]).fillna(0) * 100
         if debug: print("[monto] usando amount_transaction_cop (x100)")
         return s

@@ -371,7 +371,7 @@ if __name__ == "__main__":
     # 1) Cargar datos normalizados
     df = cargar_df()
     print(f"✓ Registros: {len(df):,}")
-    print(f"🧮 Total ingresos (COP): {df['ingresos_cop'].sum():,.0f}")
+    print(f" Total ingresos (COP): {df['ingresos_cop'].sum():,.0f}")
     if df["energy_kwh"].notna().any():
         print(f"⚡ Total energía (kWh): {df['energy_kwh'].sum(skipna=True):,.1f}")
     print()
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     print(f"   • Eficiencia (trans/estación): {insights['ganador_eficiencia']}")
 
     # Reconciliación final
-    print("\n🔎 Reconciliación:")
+    print("\n Reconciliación:")
     print(f"   • Total COP (dataset): ${insights['total_ingresos_cop']:,.0f}")
     print(f"   • Suma T1+T2 (COP):    ${insights['total_ingresos_t1_t2']:,.0f}  "
           f"(el resto pertenece a CCS/Otro)")

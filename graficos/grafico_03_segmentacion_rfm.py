@@ -75,7 +75,7 @@ def cargar_df() -> pd.DataFrame:
     df = df.dropna(subset=["start_date_time"])
 
     # ====== MONETARIO ======
-    # prioridad 1: amount_transaction_num (la que ya validamos que es la correcta)
+    # prioridad 1: amount_transaction_num 
     if "amount_transaction_num" in df.columns:
         df["ingresos_cop"] = pd.to_numeric(df["amount_transaction_num"], errors="coerce").fillna(0)
     # prioridad 2
