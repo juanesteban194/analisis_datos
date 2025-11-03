@@ -1,472 +1,271 @@
+# -*- coding: utf-8 -*-
 """
-Gráfico 8: Top Estaciones - ACTUALIZADO CON DATOS NORMALIZADOS
-Análisis: Análisis comparativo detallado de las mejores estaciones
-- Ingresos en MILLONES COP (datos ya normalizados en el CSV)
-- Total dataset: ~166.4 M COP
+Gráfico 8: Top Estaciones (total coherente ≈ 166M COP)
+- Normalización CONSISTENTE:
+    * ingresos_cop = amount_transaction / 100   (centavos → COP)
+    * energy_kwh: usa energy_kwh; si solo hay energy_wh → /1000; si hay 'energy' aplica heurística
+- Consola: totales, % que explica el Top-15, Top-3 y tabla Top-10.
+- Gráficas:
+    1) Barras Top-N por ingresos (M COP)
+    2) Radar comparativo (Transacciones, Usuarios, Energía, Ingresos) para Top-6
+- Salida: /outputs/grafico_08_top_estaciones_principal.png
+          /outputs/grafico_08_top_estaciones_radar.png
 """
 
+import os
+import sys
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
-import os
-import sys
 
-# Agregar el directorio raíz al path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+# ------------------------------------------------------------------
+# Import utils desde la raíz del proyecto
+# ------------------------------------------------------------------
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))   # .../graficos
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)                # .../analisis_datos
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-from utils import cargar_datos, guardar_grafico
+from utils import cargar_datos, guardar_grafico  # noqa: E402
 
-def calcular_metricas_estaciones(df):
-    """
-    Calcula métricas agregadas por estación
-    IMPORTANTE: Los datos YA están en COP (normalizados, divididos por 100)
-    
-    Args:
-        df: DataFrame con datos de Oasis
-    
-    Returns:
-        DataFrame con métricas por estación
-    """
-    
-    # Agrupar por estación
-    metricas = df.groupby('evse_uid').agg({
-        'id': 'count',  # Total transacciones
-        'user_id': 'nunique',  # Usuarios únicos
-        'amount_transaction': ['sum', 'mean', 'median'],  # Ingresos (YA en COP)
-        'energy_kwh': ['sum', 'mean'],  # Energía
-        'start_date_time': ['min', 'max']  # Fechas
-    }).reset_index()
-    
-    # Aplanar columnas
-    metricas.columns = [
-        'evse_uid', 'total_transacciones', 'usuarios_unicos',
-        'ingresos_totales_cop', 'ingreso_promedio_cop', 'ingreso_mediano_cop',
-        'energia_total_kwh', 'energia_promedio_kwh',
-        'primera_fecha', 'ultima_fecha'
-    ]
-    
-    # Calcular días activos
-    metricas['dias_activos'] = (metricas['ultima_fecha'] - metricas['primera_fecha']).dt.days + 1
-    metricas['dias_activos'] = metricas['dias_activos'].clip(lower=1)
-    
-    # Eficiencias
-    metricas['transacciones_por_dia'] = metricas['total_transacciones'] / metricas['dias_activos']
-    metricas['ingresos_por_dia_cop'] = metricas['ingresos_totales_cop'] / metricas['dias_activos']
-    
-    # Conversiones para visualización
-    metricas['ingresos_totales_M'] = metricas['ingresos_totales_cop'] / 1_000_000  # Millones
-    metricas['ingresos_por_dia_K'] = metricas['ingresos_por_dia_cop'] / 1_000  # Miles
-    
-    # Índice de rendimiento (0-100)
-    def normalizar(serie):
-        s = serie.fillna(0)
-        rng = s.max() - s.min()
-        if rng == 0:
-            return pd.Series(np.zeros(len(s)), index=s.index)
-        return (s - s.min()) / rng
-    
-    metricas['indice_rendimiento'] = (
-        normalizar(metricas['total_transacciones']) * 0.4 +
-        normalizar(metricas['ingresos_totales_cop']) * 0.4 +
-        normalizar(metricas['usuarios_unicos']) * 0.2
-    ) * 100
-    
-    # Categoría por índice
-    def categorizar(valor):
-        if valor >= 80: return 'Elite'
-        if valor >= 60: return 'Alto Rendimiento'
-        if valor >= 40: return 'Rendimiento Medio'
-        if valor >= 20: return 'Bajo Rendimiento'
-        return 'Crítico'
-    
-    metricas['categoria'] = metricas['indice_rendimiento'].apply(categorizar)
-    
-    # Flag Éxito
-    metricas['es_exito'] = metricas['evse_uid'].str.lower().str.contains('exito', na=False)
-    
-    # Ordenar por rendimiento
-    metricas = metricas.sort_values('indice_rendimiento', ascending=False).reset_index(drop=True)
-    
+CSV_CANDIDATES = [
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_clean_normalized.csv"),
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_normalizado.csv"),
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_clean.csv"),
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_ready.csv"),
+]
+
+# ------------------------------------------------------------------
+# Carga + normalización
+# ------------------------------------------------------------------
+def _pick_existing_path(paths):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError("No se encontró CSV. Probé:\n- " + "\n- ".join(paths))
+
+def cargar_df() -> pd.DataFrame:
+    csv_path = _pick_existing_path(CSV_CANDIDATES)
+    df = cargar_datos(csv_path)
+    print(f"✓ Usando archivo: {csv_path}")
+
+    # Fechas
+    if "start_date_time" not in df.columns:
+        raise ValueError("Falta columna 'start_date_time'.")
+    df["start_date_time"] = pd.to_datetime(df["start_date_time"], errors="coerce")
+    df = df.dropna(subset=["start_date_time"])
+
+    # ID transacción
+    if "id" not in df.columns:
+        if "transaction_id" in df.columns:
+            df = df.rename(columns={"transaction_id": "id"})
+        else:
+            df = df.reset_index().rename(columns={"index": "id"})
+
+    # Estación
+    if "evse_uid" not in df.columns:
+        for cand in ["station_name", "evse_id", "charger_id"]:
+            if cand in df.columns:
+                df = df.rename(columns={cand: "evse_uid"})
+                break
+    if "evse_uid" not in df.columns:
+        raise ValueError("Falta columna de estación ('evse_uid').")
+
+    # Energía (kWh)
+    energy_cols = [c for c in df.columns if c.lower() in ("energy_kwh", "energy_wh", "energy")]
+    if not energy_cols:
+        df["energy_kwh"] = np.nan
+    else:
+        col = energy_cols[0]
+        s = pd.to_numeric(df[col], errors="coerce")
+        if col.lower() == "energy_kwh":
+            df["energy_kwh"] = s
+        elif col.lower() == "energy_wh":
+            df["energy_kwh"] = s / 1000.0
+        else:  # 'energy' ambiguo
+            maxv = s.max(skipna=True)
+            df["energy_kwh"] = s / 1000.0 if (pd.notna(maxv) and maxv > 2000) else s
+
+    # Ingresos (COP) — regla confirmada
+    if "ingresos_cop" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["ingresos_cop"], errors="coerce")
+    elif "amount_transaction_cop" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["amount_transaction_cop"], errors="coerce")
+    elif "amount_transaction" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["amount_transaction"], errors="coerce") / 100.0
+    else:
+        raise ValueError("No encuentro columna monetaria. Se espera 'amount_transaction'.")
+
+    return df
+
+# ------------------------------------------------------------------
+# Métricas por estación
+# ------------------------------------------------------------------
+def calcular_metricas_estaciones(df: pd.DataFrame) -> pd.DataFrame:
+    metricas = (
+        df.groupby("evse_uid")
+          .agg(
+              total_transacciones=("id", "count"),
+              usuarios_unicos=("user_id", "nunique"),
+              ingresos_totales_cop=("ingresos_cop", "sum"),
+              ingreso_promedio_cop=("ingresos_cop", "mean"),
+              ingreso_mediano_cop=("ingresos_cop", "median"),
+              energia_total_kwh=("energy_kwh", "sum"),
+              energia_promedio_kwh=("energy_kwh", "mean"),
+              primera_fecha=("start_date_time", "min"),
+              ultima_fecha=("start_date_time", "max"),
+          )
+          .reset_index()
+    )
+
+    metricas["dias_activos"] = (metricas["ultima_fecha"] - metricas["primera_fecha"]).dt.days + 1
+    metricas["dias_activos"] = metricas["dias_activos"].clip(lower=1)
+    metricas["transacciones_por_dia"] = metricas["total_transacciones"] / metricas["dias_activos"]
+    metricas["ingresos_por_dia_cop"] = metricas["ingresos_totales_cop"] / metricas["dias_activos"]
+
+    # Conversión para mostrar
+    metricas["ingresos_totales_M"] = metricas["ingresos_totales_cop"] / 1_000_000.0
+    metricas["ingresos_por_dia_K"] = metricas["ingresos_por_dia_cop"] / 1_000.0
+
+    # Orden principal por ingresos
+    metricas = metricas.sort_values("ingresos_totales_cop", ascending=False)
     return metricas
 
-def crear_grafico_principal(metricas_df, top_n=15):
-    """
-    Crea el dashboard principal con 6 gráficos
-    
-    Args:
-        metricas_df: DataFrame con métricas por estación
-        top_n: Número de estaciones top a mostrar
-    
-    Returns:
-        Figure de Plotly
-    """
-    
-    # Colores por categoría
-    color_map = {
-        'Elite': '#10b981',
-        'Alto Rendimiento': '#3b82f6',
-        'Rendimiento Medio': '#f59e0b',
-        'Bajo Rendimiento': '#ef4444',
-        'Crítico': '#dc2626'
-    }
-    
-    # Crear subplots
-    fig = make_subplots(
-        rows=3, cols=2,
-        subplot_titles=(
-            f'Top {top_n} por Índice de Rendimiento',
-            f'Top {top_n} por Ingresos Totales (Millones COP)',
-            f'Top {top_n} por Transacciones',
-            f'Top {top_n} por Usuarios Únicos',
-            'Eficiencia: Transacciones por Día',
-            'Eficiencia: Ingresos por Día (Miles COP)'
-        ),
-        specs=[
-            [{'type': 'bar'}, {'type': 'bar'}],
-            [{'type': 'bar'}, {'type': 'bar'}],
-            [{'type': 'bar'}, {'type': 'bar'}]
-        ],
-        vertical_spacing=0.12,
-        horizontal_spacing=0.15,
-        row_heights=[0.34, 0.33, 0.33]
-    )
-    
-    # 1) Índice de rendimiento
-    top_indice = metricas_df.head(top_n)
+# ------------------------------------------------------------------
+# Figuras
+# ------------------------------------------------------------------
+def figura_barras_top(metricas: pd.DataFrame, top_n: int = 20) -> go.Figure:
+    top = metricas.head(top_n).copy()
+    fig = go.Figure()
+
     fig.add_trace(
         go.Bar(
-            y=top_indice['evse_uid'],
-            x=top_indice['indice_rendimiento'],
-            orientation='h',
-            marker_color=[color_map[c] for c in top_indice['categoria']],
-            text=[f"{v:.1f}" for v in top_indice['indice_rendimiento']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Índice: %{x:.1f}<extra></extra>'
-        ),
-        row=1, col=1
+            y=top["evse_uid"],
+            x=top["ingresos_totales_M"],
+            orientation="h",
+            text=[f"${v:,.2f}M" for v in top["ingresos_totales_M"]],
+            textposition="outside",
+            marker_color="#3b82f6",
+            hovertemplate="<b>%{y}</b><br>Ingresos: $%{x:.2f}M COP<extra></extra>",
+            name="Ingresos (M COP)"
+        )
     )
-    
-    # 2) Ingresos totales (MILLONES)
-    top_ingresos = metricas_df.nlargest(top_n, 'ingresos_totales_M').sort_values('ingresos_totales_M')
-    fig.add_trace(
-        go.Bar(
-            y=top_ingresos['evse_uid'],
-            x=top_ingresos['ingresos_totales_M'],
-            orientation='h',
-            marker_color='#10b981',
-            text=[f"${v:.1f}M" for v in top_ingresos['ingresos_totales_M']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Ingresos: $%{x:.2f}M COP<extra></extra>'
-        ),
-        row=1, col=2
-    )
-    
-    # 3) Transacciones
-    top_trans = metricas_df.nlargest(top_n, 'total_transacciones').sort_values('total_transacciones')
-    fig.add_trace(
-        go.Bar(
-            y=top_trans['evse_uid'],
-            x=top_trans['total_transacciones'],
-            orientation='h',
-            marker_color='#3b82f6',
-            text=[f"{int(v)}" for v in top_trans['total_transacciones']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Transacciones: %{x}<extra></extra>'
-        ),
-        row=2, col=1
-    )
-    
-    # 4) Usuarios únicos
-    top_usuarios = metricas_df.nlargest(top_n, 'usuarios_unicos').sort_values('usuarios_unicos')
-    fig.add_trace(
-        go.Bar(
-            y=top_usuarios['evse_uid'],
-            x=top_usuarios['usuarios_unicos'],
-            orientation='h',
-            marker_color='#8b5cf6',
-            text=[f"{int(v)}" for v in top_usuarios['usuarios_unicos']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Usuarios: %{x}<extra></extra>'
-        ),
-        row=2, col=2
-    )
-    
-    # 5) Transacciones por día
-    top_trans_dia = metricas_df.nlargest(top_n, 'transacciones_por_dia').sort_values('transacciones_por_dia')
-    fig.add_trace(
-        go.Bar(
-            y=top_trans_dia['evse_uid'],
-            x=top_trans_dia['transacciones_por_dia'],
-            orientation='h',
-            marker_color='#f59e0b',
-            text=[f"{v:.1f}" for v in top_trans_dia['transacciones_por_dia']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Trans/Día: %{x:.2f}<extra></extra>'
-        ),
-        row=3, col=1
-    )
-    
-    # 6) Ingresos por día (MILES)
-    top_ing_dia = metricas_df.nlargest(top_n, 'ingresos_por_dia_K').sort_values('ingresos_por_dia_K')
-    fig.add_trace(
-        go.Bar(
-            y=top_ing_dia['evse_uid'],
-            x=top_ing_dia['ingresos_por_dia_K'],
-            orientation='h',
-            marker_color='#ec4899',
-            text=[f"${v:.0f}K" for v in top_ing_dia['ingresos_por_dia_K']],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>$/Día: $%{x:,.0f}K COP<extra></extra>'
-        ),
-        row=3, col=2
-    )
-    
-    # Layout
+
     fig.update_layout(
-        title={
-            'text': 'Análisis Comparativo: Top Estaciones de Carga',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 22, 'color': '#2d3748', 'family': 'Arial Black'}
-        },
+        title=dict(
+            text="Top Estaciones por Ingresos (M COP)",
+            x=0.5, xanchor="center",
+            font=dict(size=22, family="Arial Black", color="#2d3748")
+        ),
+        height=900,
         showlegend=False,
-        height=1400,
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(family='Arial', size=10)
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(family="Arial", size=11),
+        margin=dict(l=70, r=30, t=80, b=40)
     )
-    
-    # Actualizar ejes
-    for r in (1, 2, 3):
-        for c in (1, 2):
-            fig.update_xaxes(gridcolor='#e2e8f0', row=r, col=c)
-            fig.update_yaxes(tickfont=dict(size=9), row=r, col=c)
-    
-    fig.update_xaxes(title_text='Índice (0-100)', row=1, col=1)
-    fig.update_xaxes(title_text='Ingresos Totales (Millones COP)', ticksuffix='M', row=1, col=2)
-    fig.update_xaxes(title_text='Transacciones', row=2, col=1)
-    fig.update_xaxes(title_text='Usuarios Únicos', row=2, col=2)
-    fig.update_xaxes(title_text='Transacciones por Día', row=3, col=1)
-    fig.update_xaxes(title_text='Ingresos por Día (Miles COP)', ticksuffix='K', row=3, col=2)
-    
+    fig.update_xaxes(title_text="Ingresos (Millones de COP)", gridcolor="#e2e8f0")
+    fig.update_yaxes(gridcolor="#e2e8f0", tickfont=dict(size=10))
     return fig
 
-def crear_grafico_categorias(metricas_df):
-    """
-    Crea gráfico de distribución por categorías
-    
-    Args:
-        metricas_df: DataFrame con métricas
-    
-    Returns:
-        Figure de Plotly
-    """
-    
-    color_map = {
-        'Elite': '#10b981',
-        'Alto Rendimiento': '#3b82f6',
-        'Rendimiento Medio': '#f59e0b',
-        'Bajo Rendimiento': '#ef4444',
-        'Crítico': '#dc2626'
-    }
-    
-    orden = ['Elite', 'Alto Rendimiento', 'Rendimiento Medio', 'Bajo Rendimiento', 'Crítico']
-    
-    # Contar estaciones por categoría
-    counts = metricas_df['categoria'].value_counts().reindex(orden, fill_value=0)
-    
-    # Ingresos por categoría (en millones)
-    ingresos_M = (metricas_df.groupby('categoria')['ingresos_totales_cop'].sum() / 1_000_000).reindex(orden, fill_value=0)
-    
-    # Crear subplots
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=('Distribución de Estaciones por Categoría',
-                       'Ingresos por Categoría (Millones COP)')
-    )
-    
-    # Gráfico 1: Conteo
-    fig.add_trace(
-        go.Bar(
-            x=counts.index,
-            y=counts.values,
-            marker_color=[color_map[c] for c in counts.index],
-            text=[f"{int(v)}" for v in counts.values],
-            textposition='outside',
-            hovertemplate='%{x}: %{y} estaciones<extra></extra>'
-        ),
-        row=1, col=1
-    )
-    
-    # Gráfico 2: Ingresos
-    fig.add_trace(
-        go.Bar(
-            x=ingresos_M.index,
-            y=ingresos_M.values,
-            marker_color=[color_map[c] for c in ingresos_M.index],
-            text=[f"${v:.1f}M" for v in ingresos_M.values],
-            textposition='outside',
-            hovertemplate='%{x}: $%{y:.2f}M COP<extra></extra>'
-        ),
-        row=1, col=2
-    )
-    
+def figura_radar(metricas: pd.DataFrame, top_n: int = 6) -> go.Figure:
+    top = metricas.head(top_n).copy()
+
+    # Escalas comparables (min-max normalizado por métrica)
+    cols = ["total_transacciones", "usuarios_unicos", "energia_total_kwh", "ingresos_totales_cop"]
+    norm = top[cols].copy()
+    for c in cols:
+        cmax = norm[c].max()
+        cmin = norm[c].min()
+        norm[c] = 0 if cmax == cmin else (norm[c] - cmin) / (cmax - cmin)
+
+    categorias = ["Transacciones", "Usuarios", "Energía (kWh)", "Ingresos (COP)"]
+    fig = go.Figure()
+    for i, (_, row) in enumerate(norm.iterrows()):
+        valores = [row["total_transacciones"], row["usuarios_unicos"],
+                   row["energia_total_kwh"], row["ingresos_totales_cop"]]
+        fig.add_trace(
+            go.Scatterpolar(
+                r=valores + [valores[0]],
+                theta=categorias + [categorias[0]],
+                fill="toself",
+                name=top.iloc[i]["evse_uid"]
+            )
+        )
+
     fig.update_layout(
-        title={
-            'text': 'Análisis por Categoría de Rendimiento',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'color': '#2d3748', 'family': 'Arial Black'}
-        },
-        showlegend=False,
-        height=520,
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(family='Arial', size=12)
+        title=dict(
+            text="Top 6 estaciones — Perfil comparativo (Transacciones, Usuarios únicos, Energía kWh, Ingresos COP)",
+            x=0.5, xanchor="center",
+            font=dict(size=20, family="Arial Black", color="#2d3748")
+        ),
+        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+        showlegend=True,
+        height=720,
+        plot_bgcolor="white",
+        paper_bgcolor="white",
     )
-    
-    fig.update_xaxes(gridcolor='#e2e8f0')
-    fig.update_yaxes(gridcolor='#e2e8f0')
-    fig.update_yaxes(title_text='Número de Estaciones', row=1, col=1)
-    fig.update_yaxes(title_text='Ingresos (Millones COP)', row=1, col=2)
-    
     return fig
 
-def analizar(metricas_df, df_original, top_n=15):
-    """
-    Genera análisis y reconciliación de datos
-    
-    Args:
-        metricas_df: DataFrame con métricas
-        df_original: DataFrame original
-        top_n: Número de estaciones top
-    
-    Returns:
-        dict con insights
-    """
-    
-    # Totales
-    total_dataset_cop = df_original['amount_transaction'].sum()
-    total_dataset_M = total_dataset_cop / 1_000_000
-    
-    # Verificación
-    suma_estaciones_cop = metricas_df['ingresos_totales_cop'].sum()
-    diferencia = abs(total_dataset_cop - suma_estaciones_cop)
-    pct_diff = (diferencia / total_dataset_cop * 100) if total_dataset_cop > 0 else 0
-    
-    # Top N
-    top = metricas_df.nlargest(top_n, 'ingresos_totales_cop')
-    top_sum_M = top['ingresos_totales_cop'].sum() / 1_000_000
-    pct_top = (top_sum_M / total_dataset_M * 100) if total_dataset_M > 0 else 0
-    
-    # Por categoría
-    categoria_dist = metricas_df['categoria'].value_counts()
-    
-    # Éxito vs No Éxito
-    exito_stats = metricas_df[metricas_df['es_exito']]
-    no_exito_stats = metricas_df[~metricas_df['es_exito']]
-    
-    insights = {
-        'total_dataset_cop': int(total_dataset_cop),
-        'total_dataset_M': total_dataset_M,
-        'suma_estaciones_cop': int(suma_estaciones_cop),
-        'diferencia': diferencia,
-        'pct_diff': pct_diff,
-        'top_sum_M': top_sum_M,
-        'pct_top': pct_top,
-        'total_estaciones': len(metricas_df),
-        
-        'elite_count': int(categoria_dist.get('Elite', 0)),
-        'alto_count': int(categoria_dist.get('Alto Rendimiento', 0)),
-        'medio_count': int(categoria_dist.get('Rendimiento Medio', 0)),
-        'bajo_count': int(categoria_dist.get('Bajo Rendimiento', 0)),
-        'critico_count': int(categoria_dist.get('Crítico', 0)),
-        
-        'exito_count': len(exito_stats),
-        'exito_ingresos_M': exito_stats['ingresos_totales_cop'].sum() / 1_000_000,
-        'exito_pct': (exito_stats['ingresos_totales_cop'].sum() / total_dataset_cop * 100) if total_dataset_cop > 0 else 0,
-        
-        'top_1_nombre': top.iloc[0]['evse_uid'],
-        'top_1_ingresos_M': top.iloc[0]['ingresos_totales_M'],
-        'top_1_transacciones': int(top.iloc[0]['total_transacciones']),
-        
-        'top_2_nombre': top.iloc[1]['evse_uid'],
-        'top_2_ingresos_M': top.iloc[1]['ingresos_totales_M'],
-        
-        'top_3_nombre': top.iloc[2]['evse_uid'],
-        'top_3_ingresos_M': top.iloc[2]['ingresos_totales_M']
-    }
-    
-    return insights
+# ------------------------------------------------------------------
+# Consola
+# ------------------------------------------------------------------
+def imprimir_resumen_consola(df: pd.DataFrame, metricas: pd.DataFrame):
+    total_cop = df["ingresos_cop"].sum(skipna=True)
+    top15 = metricas.head(15)
+    top15_sum = top15["ingresos_totales_cop"].sum(skipna=True)
 
+    print("\n" + "="*100)
+    print("GRÁFICO 8 - VALORES CORRECTOS (normalización consistente)")
+    print("="*100)
+    print("\n💰 TOTALES (COP):")
+    print(f"   • Dataset:  ${total_cop:,.0f}  (~{total_cop/1_000_000:.2f} M)")
+    print(f"   • Top 15:   ${top15_sum:,.0f}  (~{top15_sum/1_000_000:.2f} M) "
+          f"({(top15_sum/total_cop*100 if total_cop else np.nan):.1f}%)")
+
+    print("\n🏆 TOP 3 POR INGRESOS:")
+    for i in range(min(3, len(top15))):
+        r = top15.iloc[i]
+        print(f"   {i+1}. {r['evse_uid']}: ${r['ingresos_totales_M']:.2f} M")
+
+    # Tabla Top-10
+    print("\n" + "-"*100)
+    print("TOP 10 – ESTACIONES (ingresos, transacciones, usuarios, energía)")
+    print("-"*100)
+    print(f"{'Estación':<32} {'Ingresos(M)':>12} {'Trans':>8} {'Usuarios':>9} {'kWh':>12} {'Trans/día':>10}")
+    for _, r in metricas.head(10).iterrows():
+        print(f"{str(r['evse_uid'])[:32]:<32} {r['ingresos_totales_M']:>12.2f} "
+              f"{int(r['total_transacciones']):>8} {int(r['usuarios_unicos']):>9} "
+              f"{(r['energia_total_kwh'] if pd.notna(r['energia_total_kwh']) else 0):>12,.0f} "
+              f"{r['transacciones_por_dia']:>10.2f}")
+
+# ------------------------------------------------------------------
+# MAIN
+# ------------------------------------------------------------------
 if __name__ == "__main__":
-    print("\n" + "="*80)
-    print("GRÁFICO 8: TOP ESTACIONES (DATOS NORMALIZADOS)")
-    print("="*80)
-    
-    # Cargar datos
-    csv_path = 'data/df_oasis_clean.csv'
-    df = cargar_datos(csv_path)
-    print(f"✓ Datos normalizados - Total: ${df['amount_transaction'].sum():,.0f} COP (~${df['amount_transaction'].sum()/1_000_000:.1f}M)\n")
-    
-    # Calcular métricas
-    print("📊 Calculando métricas por estación...")
-    metricas_df = calcular_metricas_estaciones(df)
-    print(f"✓ Métricas calculadas para {len(metricas_df)} estaciones\n")
-    
-    # Crear gráficos
-    print("🎨 Creando gráficos...")
-    fig_main = crear_grafico_principal(metricas_df, top_n=15)
-    fig_cat = crear_grafico_categorias(metricas_df)
-    
-    # Análisis
-    print("\n" + "="*80)
-    print("📊 ANÁLISIS Y RECONCILIACIÓN")
-    print("="*80)
-    
-    insights = analizar(metricas_df, df, top_n=15)
-    
-    print(f"\n💰 RECONCILIACIÓN DE TOTALES:")
-    print(f"   • Total dataset: ${insights['total_dataset_cop']:,} COP (${insights['total_dataset_M']:.2f}M)")
-    print(f"   • Suma por estaciones: ${insights['suma_estaciones_cop']:,} COP")
-    print(f"   • Diferencia: ${insights['diferencia']:,.2f} COP ({insights['pct_diff']:.4f}%)")
-    print(f"   • Top 15 acumulan: ${insights['top_sum_M']:.2f}M ({insights['pct_top']:.1f}% del total)")
-    
-    print(f"\n🏆 TOP 3 ESTACIONES:")
-    print(f"   1. {insights['top_1_nombre']}: ${insights['top_1_ingresos_M']:.2f}M ({insights['top_1_transacciones']:,} trans)")
-    print(f"   2. {insights['top_2_nombre']}: ${insights['top_2_ingresos_M']:.2f}M")
-    print(f"   3. {insights['top_3_nombre']}: ${insights['top_3_ingresos_M']:.2f}M")
-    
-    print(f"\n📊 DISTRIBUCIÓN POR CATEGORÍA:")
-    print(f"   • Elite: {insights['elite_count']} estaciones")
-    print(f"   • Alto Rendimiento: {insights['alto_count']} estaciones")
-    print(f"   • Rendimiento Medio: {insights['medio_count']} estaciones")
-    print(f"   • Bajo Rendimiento: {insights['bajo_count']} estaciones")
-    print(f"   • Crítico: {insights['critico_count']} estaciones")
-    
-    print(f"\n🎯 ESTACIONES ÉXITO:")
-    print(f"   • Cantidad: {insights['exito_count']}")
-    print(f"   • Ingresos: ${insights['exito_ingresos_M']:.2f}M ({insights['exito_pct']:.1f}% del total)")
-    
-    # Guardar
-    print("\n" + "="*80)
-    print("💾 Guardando gráficos...")
-    guardar_grafico(fig_main, 'grafico_08_top_estaciones_principal.png')
-    guardar_grafico(fig_cat, 'grafico_08_categorias.png')
-    
-    # Mostrar
-    print("🌐 Abriendo gráficos...")
+    print("\n" + "="*100)
+    print("GRÁFICO 8: TOP ESTACIONES")
+    print("="*100)
+
+    # 1) Cargar y normalizar
+    df = cargar_df()
+    print(f"✓ Registros: {len(df):,}")
+
+    # 2) Métricas por estación
+    metricas = calcular_metricas_estaciones(df)
+
+    # 3) Imprimir resumen en consola (reconciliación ≈ 166M COP)
+    imprimir_resumen_consola(df, metricas)
+
+    # 4) Figuras
+    fig_main = figura_barras_top(metricas, top_n=20)
+    fig_radar = figura_radar(metricas, top_n=6)
+
+    # 5) Guardar y mostrar
+    guardar_grafico(fig_main, "grafico_08_top_estaciones_principal.png")
+    guardar_grafico(fig_radar, "grafico_08_top_estaciones_radar.png")
+
+    print("🌐 Abriendo figuras…")
     fig_main.show()
-    fig_cat.show()
-    
-    print("\n" + "="*80)
-    print("✅ GRÁFICO 8 COMPLETADO")
-    print("="*80)
-    print(f"\nUsando {len(df):,} registros con datos normalizados")
-    print("Archivos guardados:")
-    print("  • outputs/grafico_08_top_estaciones_principal.png")
-    print("  • outputs/grafico_08_categorias.png")
-    print("="*80 + "\n")
+    fig_radar.show()
