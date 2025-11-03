@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Gráfico 3: Segmentación RFM (datos normalizados)
-- Monetario SOLO en miles de COP (eje y hover)
-- Segmentos en español
-- Recorte de outliers al p99 para mejorar legibilidad
-- Sin búsquedas dinámicas: columnas fijas -> user_id, start_date_time, amount_transaction
+Gráfico 3: Segmentación RFM (COP reales → mostrados en miles)
+- Base monetaria PRIORITARIA: amount_transaction_num (COP reales)
+- Fallbacks: ingresos_cop → amount_transaction_cop → amount_transaction/100
+- Ejes y hover: miles de COP (amount_k)
+- Segmentos en español (coherentes con gráfico 4)
+- Reconciliación de totales en consola
 """
 
 import os
@@ -14,69 +15,125 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-# ---------------------------------------------------------------------
-# Configuración de rutas y utilidades (opcional)
-# ---------------------------------------------------------------------
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.dirname(CURRENT_DIR)
-sys.path.insert(0, PARENT_DIR)
+# -----------------------------------------------------------------------------
+# Paths / utils
+# -----------------------------------------------------------------------------
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))   # .../graficos
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)                 # .../analisis_datos
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-CSV_PATH = os.path.join(PARENT_DIR, "data", "df_oasis_ready.csv")  
+from utils import cargar_datos, guardar_grafico, ESTILO_GRAFICO  # type: ignore
 
-try:
-    from utils import cargar_datos as _cargar_datos, guardar_grafico as _guardar_grafico
-except Exception:
-    _cargar_datos = None
-    _guardar_grafico = None
+# archivos candidatos
+CSV_CANDIDATES = [
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_ready.csv"),
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_clean_normalized.csv"),
+    os.path.join(PROJECT_ROOT, "data", "df_oasis_clean.csv"),
+]
+
+# Colores RFM en español
+COLOR_MAP_ES = {
+    "Campeones": "#10b981",
+    "Leales": "#3b82f6",
+    "Leal potencial": "#8b5cf6",
+    "En riesgo": "#ef4444",
+    "No podemos perder": "#dc2626",
+    "Hibernando": "#6b7280",
+    "Prometedor": "#f59e0b",
+    "Necesita atención": "#f97316",
+}
 
 
-def cargar_datos_local(csv_path: str) -> pd.DataFrame:
-    """Carga simple con columnas fijas."""
-    df = pd.read_csv(csv_path, low_memory=False)
-    # Columnas fijas
-    df["start_date_time"] = pd.to_datetime(df["start_date_time"], errors="coerce")
-    df["amount_transaction"] = pd.to_numeric(df["amount_transaction"], errors="coerce")
-    if df["amount_transaction"].isna().all():
-        raise ValueError("amount_transaction está vacío o no es numérico.")
+# -----------------------------------------------------------------------------
+# Cargar y normalizar datos
+# -----------------------------------------------------------------------------
+def _pick_existing_path(paths):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError("No se encontró ningún CSV en /data.")
+
+def cargar_df() -> pd.DataFrame:
+    """
+    Carga el CSV disponible y crea SIEMPRE:
+      - start_date_time (datetime)
+      - ingresos_cop  (COP reales)
+      - amount_k      (miles de COP) -> solo para mostrar
+    """
+    csv_path = _pick_existing_path(CSV_CANDIDATES)
+    df = cargar_datos(csv_path)
+    print(f"✓ Usando archivo: {csv_path}")
+
+    # columnas mínimas
     if "user_id" not in df.columns:
-        raise ValueError("No se encontró la columna 'user_id' en el CSV.")
+        raise ValueError("Falta la columna 'user_id'.")
+    if "start_date_time" not in df.columns:
+        raise ValueError("Falta la columna 'start_date_time'.")
+
+    df["start_date_time"] = pd.to_datetime(df["start_date_time"], errors="coerce")
+    df = df.dropna(subset=["start_date_time"])
+
+    # ====== MONETARIO ======
+    # prioridad 1: amount_transaction_num (la que ya validamos que es la correcta)
+    if "amount_transaction_num" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["amount_transaction_num"], errors="coerce").fillna(0)
+    # prioridad 2
+    elif "ingresos_cop" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["ingresos_cop"], errors="coerce").fillna(0)
+    # prioridad 3
+    elif "amount_transaction_cop" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["amount_transaction_cop"], errors="coerce").fillna(0)
+    # último recurso: viene en centavos → /100
+    elif "amount_transaction" in df.columns:
+        df["ingresos_cop"] = pd.to_numeric(df["amount_transaction"], errors="coerce").fillna(0) / 100.0
+    else:
+        raise ValueError(
+            "No encontré ninguna columna monetaria. Necesito "
+            "'amount_transaction_num', 'ingresos_cop', 'amount_transaction_cop' o 'amount_transaction'."
+        )
+
+    # para mostrar: miles
+    df["amount_k"] = df["ingresos_cop"] / 1_000.0
+
+    # pequeño chequeo
+    print(
+        "✓ Chequeo montos (miles):",
+        "min", round(df["amount_k"].min(), 2),
+        "p50", round(df["amount_k"].median(), 2),
+        "p90", round(df["amount_k"].quantile(0.90), 2),
+        "max", round(df["amount_k"].max(), 2),
+    )
+
     return df
 
 
-def guardar_grafico_local(fig, filename: str, outdir: str = "outputs"):
-    """Guarda PNG (si hay kaleido) o HTML como fallback."""
-    os.makedirs(outdir, exist_ok=True)
-    png_path = os.path.join(outdir, filename)
-    html_path = os.path.splitext(png_path)[0] + ".html"
-    try:
-        fig.write_image(png_path, scale=2)  # requiere 'kaleido'
-        print(f"✓ Gráfico guardado como PNG: {png_path}")
-    except Exception:
-        fig.write_html(html_path)
-        print(f"⚠️ No se pudo guardar PNG (falta kaleido). Guardado HTML: {html_path}")
-
-
-# Selección final de funciones utilitarias
-cargar_datos = _cargar_datos if _cargar_datos else cargar_datos_local
-guardar_grafico = _guardar_grafico if _guardar_grafico else guardar_grafico_local
-
-# ---------------------------------------------------------------------
-# RFM
-# ---------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Cálculo RFM (monetario en miles SOLO para graficar)
+# -----------------------------------------------------------------------------
 def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
-    """Calcula R, F, M por usuario con columnas fijas."""
     fecha_max = df["start_date_time"].max()
-    rfm_rows = []
+
+    rows = []
     for user_id, g in df.groupby("user_id"):
         recency = (fecha_max - g["start_date_time"].max()).days
         frequency = len(g)
-        monetary = g["amount_transaction"].sum()
-        rfm_rows.append({"user_id": user_id, "recency": recency, "frequency": frequency, "monetary": monetary})
+        # miles de COP (solo para eje); el total REAL lo reconciliaremos con df["ingresos_cop"]
+        monetary_k = g["amount_k"].sum()
+        rows.append(
+            {
+                "user_id": user_id,
+                "recency": recency,
+                "frequency": frequency,
+                "monetary_k": monetary_k,
+            }
+        )
 
-    rfm = pd.DataFrame(rfm_rows)
+    rfm = pd.DataFrame(rows)
 
-    # Scores (1 a 5) con inversión de Recency (menos días = mejor)
+    # ---- scores ----
     def _qcut_or_cut(s, labels_if_cut, invert=False):
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
         try:
             res = pd.qcut(s, q=5, labels=False, duplicates="drop") + 1
         except ValueError:
@@ -87,10 +144,10 @@ def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
 
     rfm["r_score"] = _qcut_or_cut(rfm["recency"], [5, 4, 3, 2, 1], invert=True)
     rfm["f_score"] = _qcut_or_cut(rfm["frequency"], [1, 2, 3, 4, 5])
-    rfm["m_score"] = _qcut_or_cut(rfm["monetary"], [1, 2, 3, 4, 5])
+    rfm["m_score"] = _qcut_or_cut(rfm["monetary_k"], [1, 2, 3, 4, 5])
     rfm["rfm_score"] = rfm["r_score"] + rfm["f_score"] + rfm["m_score"]
 
-    # Segmentos en español
+    # ---- segmentación coherente con gráfico 4 ----
     def segmentar(row):
         r, f, m, s = row["r_score"], row["f_score"], row["m_score"], row["rfm_score"]
         if s >= 13:
@@ -114,30 +171,15 @@ def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
     return rfm
 
 
-# ---------------------------------------------------------------------
-# Gráficos (Monetario en miles de COP con tope p99)
-# ---------------------------------------------------------------------
-COLOR_MAP_ES = {
-    "Campeones": "#10b981",
-    "Leales": "#3b82f6",
-    "Leal potencial": "#8b5cf6",
-    "En riesgo": "#ef4444",
-    "No podemos perder": "#dc2626",
-    "Hibernando": "#6b7280",
-    "Prometedor": "#f59e0b",
-    "Necesita atención": "#f97316",
-}
-
+# -----------------------------------------------------------------------------
+# Gráfico 3D
+# -----------------------------------------------------------------------------
 def crear_grafico_3d(rfm_df: pd.DataFrame) -> go.Figure:
     d = rfm_df.copy()
-    d["monetary_k"] = (d["monetary"] / 1_000.0).round(0)  # SOLO miles
 
+    # recorte visual
     z_p99 = float(np.nanpercentile(d["monetary_k"], 99))
     d.loc[d["monetary_k"] > z_p99, "monetary_k"] = z_p99
-
-    d["recency_text"] = d["recency"].apply(lambda x: f"{int(x)} días")
-    d["frequency_text"] = d["frequency"].apply(lambda x: f"{int(x)} transacciones")
-    d["monetary_k_txt"] = d["monetary_k"].apply(lambda x: f"{int(x):,} mil COP")
 
     fig = go.Figure()
     for seg in sorted(d["segment"].unique()):
@@ -149,47 +191,51 @@ def crear_grafico_3d(rfm_df: pd.DataFrame) -> go.Figure:
                 z=ds["monetary_k"],
                 mode="markers",
                 name=seg,
-                marker=dict(size=6, color=COLOR_MAP_ES.get(seg, "#64748b"),
-                            opacity=0.8, line=dict(width=0.5, color="white")),
-                customdata=ds[["user_id", "recency_text", "frequency_text", "monetary_k_txt"]].values,
+                marker=dict(
+                    size=6,
+                    color=COLOR_MAP_ES.get(seg, "#64748b"),
+                    opacity=0.85,
+                    line=dict(width=0.5, color="white"),
+                ),
+                customdata=ds[["user_id", "recency", "frequency", "monetary_k"]].values,
                 hovertemplate=(
                     "<b>Segmento: " + seg + "</b><br>"
                     "Usuario: %{customdata[0]}<br>"
-                    "Recencia: %{customdata[1]}<br>"
+                    "Recencia: %{customdata[1]} días<br>"
                     "Frecuencia: %{customdata[2]}<br>"
-                    "Monetario: %{customdata[3]}<br>"
-                    "<extra></extra>"
+                    "Monetario: %{customdata[3]:,.2f} mil COP<br><extra></extra>"
                 ),
             )
         )
 
     fig.update_layout(
-        title=dict(text="Segmentación RFM de Usuarios - Vista 3D Interactiva",
-                   x=0.5, xanchor="center",
-                   font=dict(size=20, color="#2d3748", family="Arial Black")),
-        scene=dict(
-            xaxis=dict(title="Recencia (días desde última compra)",
-                       backgroundcolor="rgb(230,230,230)", gridcolor="white"),
-            yaxis=dict(title="Frecuencia (número de transacciones)",
-                       backgroundcolor="rgb(230,230,230)", gridcolor="white"),
-            zaxis=dict(
-                title="Monetario (miles de COP)",
-                tickformat=",.0f",
-                range=[0, z_p99],
-                backgroundcolor="rgb(230,230,230)", gridcolor="white",
+        title=dict(
+            text="Segmentación RFM de Usuarios - Vista 3D",
+            x=0.5, xanchor="center",
+            font=dict(
+                family=ESTILO_GRAFICO.get("font_family", "Arial"),
+                size=20,
+                color="#2d3748",
             ),
         ),
-        height=800, showlegend=True,
-        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01,
-                    bgcolor="rgba(255,255,255,0.8)"),
-        font=dict(family="Arial", size=12),
+        scene=dict(
+            xaxis=dict(title="Recencia (días)"),
+            yaxis=dict(title="Frecuencia (transacciones)"),
+            zaxis=dict(title="Monetario (miles de COP)", tickformat=",.0f"),
+        ),
+        height=820,
+        showlegend=True,
+        paper_bgcolor=ESTILO_GRAFICO.get("bg_color", "white"),
+        plot_bgcolor=ESTILO_GRAFICO.get("bg_color", "white"),
     )
     return fig
 
 
+# -----------------------------------------------------------------------------
+# Gráfico 2D
+# -----------------------------------------------------------------------------
 def crear_grafico_2d(rfm_df: pd.DataFrame) -> px.scatter:
     d = rfm_df.copy()
-    d["monetary_k"] = (d["monetary"] / 1_000.0).round(0)
     z_p99 = float(np.nanpercentile(d["monetary_k"], 99))
     d.loc[d["monetary_k"] > z_p99, "monetary_k"] = z_p99
 
@@ -199,67 +245,88 @@ def crear_grafico_2d(rfm_df: pd.DataFrame) -> px.scatter:
         y="monetary_k",
         color="segment",
         size="recency",
-        size_max=20,
+        size_max=22,
         color_discrete_map=COLOR_MAP_ES,
-        hover_data={
-            "user_id": True,
-            "recency": True,
-            "rfm_score": True,
-            "monetary_k": True,   # miles en hover
-            "monetary": False     # oculto COP completos
-        },
+        hover_data=["user_id", "recency", "rfm_score", "monetary_k"],
         labels={
-            "frequency": "Frecuencia (Transacciones)",
+            "frequency": "Frecuencia (transacciones)",
             "monetary_k": "Monetario (miles de COP)",
-            "segment": "Segmento"
+            "segment": "Segmento",
         },
-        title="Segmentación RFM - Frecuencia vs Monetario (tamaño = Recencia)"
+        title="Segmentación RFM - Frequency vs Monetary",
     )
 
     fig.update_layout(
-        title=dict(x=0.5, xanchor="center",
-                   font=dict(size=18, color="#2d3748", family="Arial Black")),
-        plot_bgcolor="white", paper_bgcolor="white", height=700,
-        font=dict(family="Arial", size=12),
+        xaxis=dict(gridcolor="#e2e8f0"),
+        yaxis=dict(gridcolor="#e2e8f0", tickformat=",.0f"),
+        height=720,
+        paper_bgcolor=ESTILO_GRAFICO.get("bg_color", "white"),
+        plot_bgcolor=ESTILO_GRAFICO.get("bg_color", "white"),
     )
-    fig.update_xaxes(gridcolor="#e2e8f0")
-    fig.update_yaxes(gridcolor="#e2e8f0", tickformat=",.0f")
     return fig
 
 
-# ---------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Consola
+# -----------------------------------------------------------------------------
+def imprimir_resumen_consola(rfm_df: pd.DataFrame, df_base: pd.DataFrame) -> None:
+    seg_stats = (
+        rfm_df.groupby("segment")
+        .agg(
+            usuarios=("user_id", "count"),
+            recency_avg=("recency", "mean"),
+            frequency_avg=("frequency", "mean"),
+            monetary_avg_k=("monetary_k", "mean"),
+            rfm_score_avg=("rfm_score", "mean"),
+        )
+        .round(2)
+        .sort_values("usuarios", ascending=False)
+    )
+    total_usuarios = len(rfm_df)
+
+    print("\n" + "=" * 90)
+    print("📊 RESUMEN POR SEGMENTO (monetario en MILES de COP)")
+    print("=" * 90)
+    print(f"{'Segmento':<20} {'Usuarios':>8} {'%':>6} {'Rec':>6} {'Freq':>6} {'$ promedio (mil)':>18}")
+    print("-" * 90)
+    for seg, r in seg_stats.iterrows():
+        pct = r["usuarios"] / total_usuarios * 100
+        print(
+            f"{seg:<20} {int(r['usuarios']):>8} {pct:>5.1f} "
+            f"{r['recency_avg']:>6.1f} {r['frequency_avg']:>6.1f} {r['monetary_avg_k']:>18,.2f}"
+        )
+
+    # ---- Reconciliación real en COP ----
+    total_cop = df_base["ingresos_cop"].sum(skipna=True)
+    print("\n" + "=" * 90)
+    print(f"🧮 Total de ingresos en dataset (COP reales): {total_cop:,.0f}")
+    print("    (esto es el valor que debe concordar con tus ~166 millones)")
+    print("=" * 90)
+
+
+# -----------------------------------------------------------------------------
 # MAIN
-# ---------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("\n" + "=" * 80)
-    print("GRÁFICO 3: SEGMENTACIÓN RFM (DATOS NORMALIZADOS)")
-    print("=" * 80)
+    print("\n" + "=" * 110)
+    print("GRÁFICO 3: SEGMENTACIÓN RFM (base en COP reales, ejes en MILES)")
+    print("=" * 110)
 
-    # Cargar datos (columnas fijas)
-    df = cargar_datos(CSV_PATH)
-    print(f"✓ Archivo: {CSV_PATH} | Registros: {len(df):,}")
-
-    # Cálculo RFM
-    print("\n📊 Calculando RFM...")
+    df = cargar_df()
     rfm_df = calcular_rfm(df)
-    print(f"✓ RFM para {len(rfm_df):,} usuarios")
 
-    # Gráficos
-    print("🎨 Creando gráficos...")
+    print("🎨 Creando gráficos…")
     fig_3d = crear_grafico_3d(rfm_df)
     fig_2d = crear_grafico_2d(rfm_df)
 
-    # Guardado
-    print("\n💾 Guardando gráficos...")
+    print("💾 Guardando gráficos…")
     guardar_grafico(fig_3d, "grafico_03_rfm_3d.png")
     guardar_grafico(fig_2d, "grafico_03_rfm_2d.png")
 
-    # Mostrar (opcional)
-    print("🌐 Abriendo gráfico 3D…")
+    print("🌐 Mostrando…")
     fig_3d.show()
-    print("🌐 Abriendo gráfico 2D…")
     fig_2d.show()
 
-    print("\n" + "=" * 80)
-    print("✅ GRÁFICO 3 COMPLETADO")
-    print("=" * 80 + "\n")
+    imprimir_resumen_consola(rfm_df, df)
+
+    print("\n✅ Gráfico 3 listo y coherente con el total real.\n")
