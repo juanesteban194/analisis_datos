@@ -2,10 +2,24 @@ import pandas as pd
 import plotly.express as px
 
 
+def _score_from_series(series: pd.Series, labels, ascending: bool = True) -> pd.Series:
+    """
+    Devuelve un puntaje por cuantiles usando qcut sobre el RANK.
+    Al usar rank, todos los valores son únicos y evitamos el problema
+    de 'Bin labels must be one fewer than the number of bin edges'.
+    """
+    s = series.copy()
+    # Rango 1..n (todos únicos)
+    rank = s.rank(method="first", ascending=ascending)
+    # Siempre usamos tantos labels como cuantiles
+    return pd.qcut(rank, q=len(labels), labels=labels)
+
+
 def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcula Recency, Frequency, Monetary y el score RFM por usuario,
-    usando 'ingresos_cop' como valor monetario.
+    Calcula Recency, Frequency y Monetary por usuario,
+    más el score RFM y el segmento.
+    Usa la columna 'ingresos_cop' como valor monetario.
     """
     df = df.copy()
 
@@ -16,6 +30,7 @@ def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
     df["start_date_time"] = pd.to_datetime(df["start_date_time"], errors="coerce")
     df = df.dropna(subset=["start_date_time"])
 
+    # Fecha de referencia: día siguiente a la última transacción
     ref_date = df["start_date_time"].max() + pd.Timedelta(days=1)
 
     rfm = (
@@ -28,25 +43,24 @@ def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    def safe_qcut(series, q, labels):
-        series = series.copy()
-        n_unique = series.nunique()
-        if n_unique < q:
-            ranks = pd.qcut(
-                series.rank(method="first"),
-                q=q,
-                labels=labels,
-                duplicates="drop",
-            )
-            return ranks
-        return pd.qcut(series, q=q, labels=labels, duplicates="drop")
+    # Recency: menor recency = mejor ⇒ etiquetas altas para valores pequeños
+    rfm["R_score"] = _score_from_series(
+        rfm["recency"], labels=[4, 3, 2, 1], ascending=True
+    ).astype(int)
 
-    rfm["R_score"] = safe_qcut(rfm["recency"], 4, labels=[4, 3, 2, 1]).astype(int)
-    rfm["F_score"] = safe_qcut(rfm["frequency"], 4, labels=[1, 2, 3, 4]).astype(int)
-    rfm["M_score"] = safe_qcut(rfm["monetary"], 4, labels=[1, 2, 3, 4]).astype(int)
+    # Frequency y Monetary: mayor valor = mejor ⇒ labels crecientes
+    rfm["F_score"] = _score_from_series(
+        rfm["frequency"], labels=[1, 2, 3, 4], ascending=True
+    ).astype(int)
 
+    rfm["M_score"] = _score_from_series(
+        rfm["monetary"], labels=[1, 2, 3, 4], ascending=True
+    ).astype(int)
+
+    # Score total
     rfm["RFM_score"] = rfm[["R_score", "F_score", "M_score"]].sum(axis=1)
 
+    # Segmento según score
     def asignar_segmento(score):
         if score >= 11:
             return "VIP"
@@ -64,8 +78,8 @@ def calcular_rfm(df: pd.DataFrame) -> pd.DataFrame:
 
 def crear_grafico_2d(rfm: pd.DataFrame):
     """
-    Recibe directamente el dataframe RFM (lo pasa dashboard_profesional
-    cuando 'rfm': True) y dibuja frecuencia vs. valor monetario.
+    Recibe el DataFrame RFM (ya calculado en dashboard_profesional
+    cuando 'rfm': True) y dibuja Frecuencia vs Ingresos.
     """
     data = rfm.copy()
     data["monetary_millones"] = data["monetary"] / 1_000_000
