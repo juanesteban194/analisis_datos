@@ -1,5 +1,5 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🎨 OASIS EVSE - Estilos Profesionales v3.0
+   🎨 OASIS EVSE - Estilos para Pestañas v3.3
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -16,8 +16,6 @@
     --info-color: #3b82f6;
     --dark-color: #1a202c;
     --light-color: #f8f9fa;
-    --sidebar-width: 280px;
-    --header-height: 60px;
     --transition-speed: 0.3s;
 }
 
@@ -39,36 +37,68 @@ body {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🎯 MENU LATERAL
+   📑 PESTAÑAS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-/* Items del menú */
-.list-group-item {
+/* Contenedor de pestañas */
+.nav-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 0;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Pestañas individuales */
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #4a5568;
+    font-weight: 500;
+    font-size: 15px;
+    padding: 12px 24px;
     transition: all var(--transition-speed) ease;
-    border: none !important;
+    margin: 0 2px;
 }
 
-.list-group-item:hover {
-    background-color: #f1f3f9 !important;
-    transform: translateX(5px);
-    padding-left: 1.5rem !important;
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #cbd5e0;
+    background-color: #f7fafc;
+    color: #2d3748;
 }
 
-.list-group-item:active,
-.list-group-item.active {
-    background-color: #e8ebf7 !important;
-    color: var(--primary-color) !important;
+.nav-tabs .nav-link.active {
+    color: white !important;
+    border-bottom-color: transparent;
+    background-color: var(--primary-color) !important;
     font-weight: 600;
-    border-left: 3px solid var(--primary-color) !important;
 }
 
-/* Headers de acordeón */
-.card-header {
-    transition: all var(--transition-speed) ease;
+/* Contenido de las pestañas */
+.tab-content {
+    background-color: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.card-header:hover {
-    background-color: #e8ebf7 !important;
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   🔘 BOTONES DE GRÁFICOS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.btn-light {
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-light:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    border-color: var(--primary-color) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-light:active {
+    transform: translateY(0);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -77,6 +107,7 @@ body {
 .card {
     transition: all var(--transition-speed) ease;
     border-radius: 12px;
+    border: 1px solid #e2e8f0;
 }
 
 .card:hover {
@@ -84,7 +115,6 @@ body {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* KPI específicos */
 .card h3 {
     font-size: 2rem;
     font-weight: 700;
@@ -101,10 +131,6 @@ body {
    📈 GRÁFICOS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .js-plotly-plot {
-    border-radius: 8px;
-}
-
-.js-plotly-plot .plotly {
     border-radius: 8px;
 }
 
@@ -143,9 +169,8 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-/* Spinner personalizado */
 ._dash-loading-callback::after {
-    content: '';
+    content: 'Cargando...';
     display: block;
     width: 50px;
     height: 50px;
@@ -161,42 +186,14 @@ body {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🎨 NAVBAR
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.navbar {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    📱 RESPONSIVE
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-/* Tablets */
-@media (max-width: 992px) {
-    :root {
-        --sidebar-width: 250px;
-    }
-    
-    .card h3 {
-        font-size: 1.5rem;
-    }
-}
-
-/* Mobile */
 @media (max-width: 768px) {
-    :root {
-        --sidebar-width: 0;
-    }
-    
-    /* Ocultar sidebar en móvil (versión futura: hamburger menu) */
-    [style*="width: 280px"] {
-        display: none !important;
-    }
-    
-    /* Ajustar contenido */
-    [style*="marginLeft: 280px"] {
-        margin-left: 0 !important;
+    /* Pestañas en móvil */
+    .nav-tabs .nav-link {
+        padding: 10px 16px;
+        font-size: 13px;
     }
     
     /* KPIs en columna */
@@ -206,26 +203,24 @@ body {
     }
     
     .card h3 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
     }
     
-    .js-plotly-plot {
-        height: 400px !important;
+    /* Botones más pequeños */
+    .btn-light {
+        font-size: 12px;
+        padding: 6px 12px;
     }
 }
 
-/* Muy pequeño */
 @media (max-width: 576px) {
     body {
         font-size: 13px;
     }
     
-    .card h3 {
-        font-size: 1.5rem;
-    }
-    
-    .card h6 {
-        font-size: 0.7rem;
+    .nav-tabs .nav-link {
+        padding: 8px 12px;
+        font-size: 12px;
     }
 }
 
@@ -244,33 +239,9 @@ body {
     }
 }
 
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Aplicar animaciones */
 .card {
     animation: fadeIn 0.4s ease-out;
 }
-
-.list-group-item {
-    animation: slideInLeft 0.3s ease-out;
-    animation-fill-mode: both;
-}
-
-/* Delay escalonado para items del menú */
-.list-group-item:nth-child(1) { animation-delay: 0.05s; }
-.list-group-item:nth-child(2) { animation-delay: 0.1s; }
-.list-group-item:nth-child(3) { animation-delay: 0.15s; }
-.list-group-item:nth-child(4) { animation-delay: 0.2s; }
-.list-group-item:nth-child(5) { animation-delay: 0.25s; }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    🎯 SCROLLBAR PERSONALIZADO
@@ -315,59 +286,13 @@ body {
     border-radius: 12px !important;
 }
 
-.text-gradient {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* Badge de estado */
-.badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.75rem;
-}
-
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🎨 COLORES DE ESTADO
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.bg-success-light {
-    background-color: rgba(16, 185, 129, 0.1) !important;
-}
-
-.bg-warning-light {
-    background-color: rgba(245, 158, 11, 0.1) !important;
-}
-
-.bg-danger-light {
-    background-color: rgba(239, 68, 68, 0.1) !important;
-}
-
-.bg-info-light {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🔔 TOOLTIPS & ALERTS
+   🔔 ALERTS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .alert {
     border-radius: 10px;
     border: none;
     border-left: 4px solid;
-}
-
-.alert-success {
-    background-color: rgba(16, 185, 129, 0.1);
-    border-left-color: var(--success-color);
-    color: #065f46;
-}
-
-.alert-warning {
-    background-color: rgba(245, 158, 11, 0.1);
-    border-left-color: var(--warning-color);
-    color: #92400e;
 }
 
 .alert-danger {
@@ -376,17 +301,17 @@ body {
     color: #991b1b;
 }
 
-.alert-info {
-    background-color: rgba(59, 130, 246, 0.1);
-    border-left-color: var(--info-color);
-    color: #1e3a8a;
+.alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-left-color: var(--success-color);
+    color: #065f46;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   💫 EFECTOS ESPECIALES
+   🎭 EFECTOS ESPECIALES
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-/* Efecto de brillo en hover */
+/* Efecto de brillo en hover de cards */
 .card::before {
     content: '';
     position: absolute;
@@ -407,55 +332,12 @@ body {
     left: 100%;
 }
 
-/* Pulse animation para elementos importantes */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-}
-
-.pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🎭 DARK MODE (Opcional - para implementación futura)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-@media (prefers-color-scheme: dark) {
-    /* 
-    Descomenta para habilitar dark mode automático
-    
-    :root {
-        --dark-color: #f8f9fa;
-        --light-color: #1a202c;
-    }
-    
-    body {
-        background-color: #111827;
-        color: #f8f9fa;
-    }
-    
-    .card {
-        background-color: #1f2937;
-        color: #f8f9fa;
-    }
-    */
-}
-
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    🎯 PRINT STYLES
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 @media print {
-    .navbar,
-    [style*="width: 280px"] {
+    .nav-tabs {
         display: none !important;
-    }
-    
-    [style*="marginLeft: 280px"] {
-        margin-left: 0 !important;
     }
     
     .card {

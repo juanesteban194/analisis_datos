@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-OASIS EVSE - Dashboard Profesional v3.3 CON PESTAÑAS
+OASIS EVSE - Dashboard Profesional v3.4 CORREGIDO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Pestañas superiores en lugar de menú lateral
-- Sin emojis en la interfaz visual
-- Carga confiable de todos los gráficos
+- Pestañas superiores
+- Sin emojis en interfaz visual
+- Manejo robusto de errores y argumentos
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -106,7 +106,7 @@ GRAFICOS_CONFIG = {
         "nombre": "Patrones Temporales",
         "color": "#f59e0b",
         "graficos": [
-            {"id": "g06", "titulo": "Patrones Horarios", "modulo": "grafico_06_patrones_horarios", "funcion": "crear_grafico"},
+            {"id": "g06", "titulo": "Patrones Horarios", "modulo": "grafico_06_patrones_horarios", "funcion": "crear_grafico", "temporal": True},
             {"id": "g07", "titulo": "Heatmap de Uso", "modulo": "grafico_07_heatmap_uso", "funcion": "crear_grafico", "uso": True}
         ]
     },
@@ -116,7 +116,7 @@ GRAFICOS_CONFIG = {
         "graficos": [
             {"id": "g08", "titulo": "Top Estaciones", "modulo": "grafico_08_top_estaciones", "funcion": "figura_barras_top", "metricas": True},
             {"id": "g09", "titulo": "Comparación T1 vs T2", "modulo": "grafico_09_comparacion_t1_t2", "funcion": "crear_grafico_principal", "tipos": True},
-            {"id": "g10", "titulo": "Energía por Estación", "modulo": "grafico_10_energia_estaciones", "funcion": "crear_grafico"}
+            {"id": "g10", "titulo": "Energía por Estación", "modulo": "grafico_10_energia_estaciones", "funcion": "crear_grafico", "energia": True}
         ]
     }
 }
@@ -151,7 +151,6 @@ def crear_tabs():
     tabs = []
     
     for cat_id, config in GRAFICOS_CONFIG.items():
-        # Crear botones para cada gráfico en la categoría
         botones = []
         for graf in config["graficos"]:
             botones.append(
@@ -164,7 +163,6 @@ def crear_tabs():
                 )
             )
         
-        # Crear el contenido de la pestaña
         tab_content = html.Div([
             html.Div(botones, className="mb-3"),
             html.Div(id=f"content-{cat_id}")
@@ -191,7 +189,7 @@ def cargar_grafico(config, df):
     try:
         modulo = __import__(config["modulo"])
         
-        # Casos especiales con try/except individual
+        # Casos especiales
         if config.get("rfm"):
             try:
                 rfm = modulo.calcular_rfm(df)
@@ -208,7 +206,17 @@ def cargar_grafico(config, df):
             except Exception as e:
                 raise Exception(f"Error en cohortes: {str(e)}")
                 
+        elif config.get("temporal"):
+            # Gráfico 06: Patrones Horarios - necesita preparar datos Y matriz
+            try:
+                df_t = modulo.preparar_datos_temporales(df)
+                matriz = modulo.crear_matriz_heatmap(df_t)
+                return modulo.crear_grafico(df_t, matriz)
+            except Exception as e:
+                raise Exception(f"Error en temporal: {str(e)}")
+                
         elif config.get("uso"):
+            # Gráfico 07: Heatmap de Uso
             try:
                 uso = modulo.preparar_datos_uso(df)
                 matriz = modulo.crear_matriz_temporal(df, uso["evse_uid"].tolist())
@@ -217,6 +225,7 @@ def cargar_grafico(config, df):
                 raise Exception(f"Error en uso: {str(e)}")
                 
         elif config.get("metricas"):
+            # Gráfico 08: Top estaciones
             try:
                 metricas = modulo.calcular_metricas_estaciones(df)
                 func = getattr(modulo, config["funcion"])
@@ -225,13 +234,24 @@ def cargar_grafico(config, df):
                 raise Exception(f"Error en métricas: {str(e)}")
                 
         elif config.get("tipos"):
+            # Gráfico 09: T1 vs T2
             try:
                 metricas_tipo, _ = modulo.preparar_datos_comparacion(df)
                 func = getattr(modulo, config["funcion"])
                 return func(metricas_tipo)
             except Exception as e:
                 raise Exception(f"Error en tipos: {str(e)}")
+                
+        elif config.get("energia"):
+            # Gráfico 10: Energía - necesita preparar y crear matriz
+            try:
+                agg_est = modulo.preparar_metricas_estacion(df)
+                matriz = modulo.crear_matriz_temporal_kwh(df)
+                return modulo.crear_grafico(agg_est, matriz)
+            except Exception as e:
+                raise Exception(f"Error en energía: {str(e)}")
         else:
+            # Caso estándar: solo pasar df
             func = getattr(modulo, config["funcion"])
             return func(df)
             
@@ -242,7 +262,7 @@ def cargar_grafico(config, df):
         print(f"❌ {error_msg}")
         
         fig.add_annotation(
-            text=f"⚠ {error_msg[:100]}...",
+            text=f"⚠ {error_msg[:150]}...",
             xref="paper", yref="paper",
             x=0.5, y=0.5,
             showarrow=False,
@@ -372,7 +392,7 @@ for cat_id in GRAFICOS_CONFIG.keys():
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🚀 OASIS EVSE DASHBOARD v3.3 - PESTAÑAS SUPERIORES")
+    print("🚀 OASIS EVSE DASHBOARD v3.4 - CORREGIDO")
     print("="*60)
     print(f"📊 Dataset: {len(DF_FULL):,} registros")
     print(f"👥 Usuarios: {DF_FULL['user_id'].nunique():,}")
